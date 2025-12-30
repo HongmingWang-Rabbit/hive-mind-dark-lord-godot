@@ -1,0 +1,16 @@
+[gd_scene load_steps=3 format=4 uid="uid://dark_lord_scene"]
+
+[ext_resource type="Script" path="res://scripts/entities/HiveMindDarkLord.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hive_mind_dark_lord.png" id="2_sprite"]
+
+[node name="DarkLord" type="CharacterBody2D"]
+script = ExtResource("1_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("2_sprite")
+texture_filter = 0
+
+[node name="WanderTimer" type="Timer" parent="."]
+one_shot = true
+
+[connection signal="timeout" from="WanderTimer" to="." method="_on_wander_timer_timeout"]

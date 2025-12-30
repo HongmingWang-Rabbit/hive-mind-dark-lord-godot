@@ -8,10 +8,12 @@ extends Node2D
 ##   CorruptionMap - Purple corruption overlay
 
 const Tiles := preload("res://scripts/data/tile_data.gd")
+const DarkLordScene := preload("res://scenes/entities/dark_lord.tscn")
 
 @onready var floor_map: TileMapLayer = $FloorMap
 @onready var structure_map: TileMapLayer = $StructureMap
 @onready var corruption_map: TileMapLayer = $CorruptionMap
+@onready var entities: Node2D = $Entities
 @onready var camera: Camera2D = $Camera2D  # Expects CameraController.gd attached
 
 # Generation toggle (can override constants via inspector)
@@ -31,6 +33,7 @@ var map_height: int
 
 # Initial state
 var _initial_corruption_tile: Vector2i
+var _dark_lord: CharacterBody2D
 
 
 func _ready() -> void:
@@ -42,6 +45,7 @@ func _ready() -> void:
 	else:
 		_count_existing_tiles()
 
+	_spawn_dark_lord()
 	_init_camera()
 	GameManager.start_game()
 
@@ -62,6 +66,13 @@ func _init_map_size() -> void:
 func _init_camera() -> void:
 	camera.set_map_bounds(map_width, map_height)
 	camera.center_on_tile(_initial_corruption_tile)
+
+
+func _spawn_dark_lord() -> void:
+	_dark_lord = DarkLordScene.instantiate()
+	var tile_size := GameConstants.TILE_SIZE
+	_dark_lord.global_position = Vector2(_initial_corruption_tile) * tile_size + Vector2(tile_size, tile_size) / 2.0
+	entities.add_child(_dark_lord)
 
 
 func _count_existing_tiles() -> void:
