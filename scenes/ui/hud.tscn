@@ -91,3 +91,75 @@ offset_left = -120.0
 offset_top = -80.0
 grow_horizontal = 0
 grow_vertical = 0
+
+[node name="BottomToolbar" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -24.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="HBox" type="HBoxContainer" parent="BottomToolbar"]
+layout_mode = 2
+
+[node name="BuildingsSection" type="HBoxContainer" parent="BottomToolbar/HBox"]
+layout_mode = 2
+
+[node name="BuildLabel" type="Label" parent="BottomToolbar/HBox/BuildingsSection"]
+layout_mode = 2
+text = "Build:"
+
+[node name="NodeBtn" type="Button" parent="BottomToolbar/HBox/BuildingsSection"]
+layout_mode = 2
+text = "N:50"
+
+[node name="PitBtn" type="Button" parent="BottomToolbar/HBox/BuildingsSection"]
+layout_mode = 2
+text = "P:100"
+
+[node name="PortalBtn" type="Button" parent="BottomToolbar/HBox/BuildingsSection"]
+layout_mode = 2
+text = "O:20"
+
+[node name="Sep1" type="VSeparator" parent="BottomToolbar/HBox"]
+layout_mode = 2
+
+[node name="OrdersSection" type="HBoxContainer" parent="BottomToolbar/HBox"]
+layout_mode = 2
+
+[node name="OrderLabel" type="Label" parent="BottomToolbar/HBox/OrdersSection"]
+layout_mode = 2
+text = "Order:"
+
+[node name="AttackBtn" type="Button" parent="BottomToolbar/HBox/OrdersSection"]
+layout_mode = 2
+text = "Atk"
+
+[node name="ScoutBtn" type="Button" parent="BottomToolbar/HBox/OrdersSection"]
+layout_mode = 2
+text = "Sct"
+
+[node name="DefendBtn" type="Button" parent="BottomToolbar/HBox/OrdersSection"]
+layout_mode = 2
+text = "Def"
+
+[node name="RetreatBtn" type="Button" parent="BottomToolbar/HBox/OrdersSection"]
+layout_mode = 2
+text = "Ret"
+
+[node name="Sep2" type="VSeparator" parent="BottomToolbar/HBox"]
+layout_mode = 2
+
+[node name="EvolveSection" type="HBoxContainer" parent="BottomToolbar/HBox"]
+layout_mode = 2
+
+[node name="EvolveLabel" type="Label" parent="BottomToolbar/HBox/EvolveSection"]
+layout_mode = 2
+text = "Evolve:"
+
+[node name="EvolveBtn" type="Button" parent="BottomToolbar/HBox/EvolveSection"]
+layout_mode = 2
+text = "Evo"

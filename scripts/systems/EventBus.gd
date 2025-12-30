@@ -31,3 +31,7 @@ signal corruption_cleared(tile_pos: Vector2i)
 
 # Fog of war events
 signal fog_update_requested(world: Enums.WorldType)
+
+# Toolbar events
+signal building_requested(building_type: Enums.BuildingType)
+signal order_requested(assignment: Enums.MinionAssignment)

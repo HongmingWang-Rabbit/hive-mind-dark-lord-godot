@@ -18,6 +18,7 @@ const BUTTON_BORDER_COLOR := Color(0.5, 0.3, 0.7, 1.0)
 const BUTTON_BORDER_HOVER_COLOR := Color(0.6, 0.4, 0.8, 1.0)
 const BUTTON_FONT_COLOR := Color(0.9, 0.9, 1.0, 1.0)
 const BUTTON_FONT_HOVER_COLOR := Color(1.0, 1.0, 1.0, 1.0)
+const BUTTON_DISABLED_COLOR := Color(0.4, 0.4, 0.4, 0.6)
 const BUTTON_CORNER_RADIUS := 2
 const BUTTON_BORDER_WIDTH := 1
 const BUTTON_MARGIN_H := 3.0
@@ -54,4 +55,10 @@ const SEPARATOR_WIDTH := 2
 #region Font
 const FONT_SIZE := 8
 const FONT_SIZE_HEADER := 8
+#endregion
+
+#region Bottom Toolbar
+const TOOLBAR_HEIGHT := 24
+const TOOLBAR_SECTION_SEPARATION := 4
+const TOOLBAR_LABEL_COLOR := Color(0.8, 0.7, 0.9, 1.0)
 #endregion

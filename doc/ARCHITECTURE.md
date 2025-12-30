@@ -100,6 +100,10 @@ signal corruption_cleared(tile_pos: Vector2i)
 
 # Fog of War
 signal fog_update_requested(world: Enums.WorldType)
+
+# Toolbar
+signal building_requested(building_type: Enums.BuildingType)
+signal order_requested(assignment: Enums.MinionAssignment)
 ```
 
 ## GameConstants Reference
@@ -211,7 +215,12 @@ Main (World.gd)
 │       │   ├── ThreatLabel
 │       │   └── WorldButton
 │       ├── SidePanel [VBoxContainer]
-│       └── ContextPanel
+│       ├── ContextPanel
+│       └── BottomToolbar [PanelContainer]
+│           └── HBox [HBoxContainer]
+│               ├── BuildingsSection (N:50, P:100, O:20)
+│               ├── OrdersSection (Atk, Sct, Def, Ret)
+│               └── EvolveSection (Evo)
 └── Camera2D (CameraController.gd)
 ```
 
@@ -226,7 +235,17 @@ Manages UI elements and player interactions. Applies visual theme from UITheme.g
 - **Corruption display**: Updates when `EventBus.corruption_changed` fires
 - **Threat display**: Updates when `EventBus.threat_level_changed` fires
 - **World switch button**: Toggles visibility between Corrupted/Human world (view only, does not move entities)
+- **Bottom toolbar**: Buildings, Orders, and Evolve sections with cost display and disabled states
 - **Themed styling**: All colors and styles applied programmatically from UITheme.gd
+
+### Bottom Toolbar Sections
+| Section | Buttons | Emits |
+|---------|---------|-------|
+| Buildings | N:50, P:100, O:20 | `building_requested(BuildingType)` |
+| Orders | Atk, Sct, Def, Ret | `order_requested(MinionAssignment)`, `retreat_ordered()` |
+| Evolve | Evo | Placeholder for future |
+
+Building buttons auto-disable when player can't afford the cost. Costs are retrieved via `_get_building_cost()` helper which routes to either `GameConstants.BUILDING_STATS` or `PortalData.PLACEMENT_COST`.
 
 ### UI Text Constants
 ```gdscript
@@ -236,6 +255,9 @@ ESSENCE_FORMAT          # "E:%d" (compact for 480x270 viewport)
 CORRUPTION_FORMAT       # "C:%d%%"
 THREAT_FORMAT           # "T:%s"
 THREAT_LEVEL_NAMES      # ["None", "Police", "Military", "Heavy"]
+NODE_BTN_FORMAT         # "N:%d" (Corruption Node)
+PIT_BTN_FORMAT          # "P:%d" (Spawning Pit)
+PORTAL_BTN_FORMAT       # "O:%d" (Portal)
 ```
 
 ### Connected Signals
@@ -267,6 +289,7 @@ PANEL_MARGIN, PANEL_MARGIN_SMALL
 BUTTON_BG_COLOR, BUTTON_BG_HOVER_COLOR
 BUTTON_BORDER_COLOR, BUTTON_BORDER_HOVER_COLOR
 BUTTON_FONT_COLOR, BUTTON_FONT_HOVER_COLOR
+BUTTON_DISABLED_COLOR               # Grayed out when disabled
 BUTTON_CORNER_RADIUS, BUTTON_BORDER_WIDTH
 BUTTON_MARGIN_H, BUTTON_MARGIN_V
 
@@ -285,6 +308,11 @@ TOP_BAR_SEPARATION, SIDE_PANEL_SEPARATION, SEPARATOR_WIDTH
 
 #region Font
 FONT_SIZE, FONT_SIZE_HEADER  # 8px for pixel art viewport
+
+#region Bottom Toolbar
+TOOLBAR_HEIGHT              # 24px
+TOOLBAR_SECTION_SEPARATION  # 4px between sections
+TOOLBAR_LABEL_COLOR         # Light purple section headers
 ```
 
 ## System Reset Flow
