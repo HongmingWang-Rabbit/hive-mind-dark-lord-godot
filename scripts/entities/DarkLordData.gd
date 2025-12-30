@@ -1,6 +1,6 @@
 extends RefCounted
 ## Dark Lord configuration - all Dark Lord specific values
-## Use preload pattern: const DarkLord := preload("res://scripts/entities/DarkLordData.gd")
+## Use preload pattern: const Data := preload("res://scripts/entities/DarkLordData.gd")
 
 const SPRITE_SCALE := Vector2(0.25, 0.25)
 const WANDER_SPEED := 30.0
