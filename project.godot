@@ -20,10 +20,11 @@ config/icon="res://icon.svg"
 Enums="*res://scripts/data/enums.gd"
 GameConstants="*res://scripts/data/game_constants.gd"
 EventBus="*res://scripts/systems/EventBus.gd"
-WorldManager="*res://scripts/systems/WorldManager.gd"
 Essence="*res://scripts/systems/Essence.gd"
 HivePool="*res://scripts/systems/HivePool.gd"
 GameManager="*res://scripts/systems/GameManager.gd"
+TileData="*res://scripts/data/tile_data.gd"
+WorldManager="*res://scripts/systems/WorldManager.gd"
 
 [display]
 
@@ -32,10 +33,9 @@ window/size/viewport_height=270
 window/size/window_width_override=1440
 window/size/window_height_override=810
 window/stretch/mode="canvas_items"
-window/stretch/aspect="keep"
 
 [rendering]
 
+textures/canvas_textures/default_texture_filter=0
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-textures/canvas_textures/default_texture_filter=0
