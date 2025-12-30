@@ -174,13 +174,14 @@ Standalone camera script attached to Camera2D node. Handles all camera movement.
 
 ### Public API
 ```gdscript
-set_map_bounds(map_width: int, map_height: int)  # Call after map generation
+set_map_bounds(map_width: int, map_height: int)  # Configure bounds after map generation
+center_on_tile(tile_pos: Vector2i)               # Center camera on a tile position
 ```
 
 ### Swapping Camera System
 To replace with a different camera:
 1. Create new script extending Camera2D
-2. Implement `set_map_bounds()` method
+2. Implement `set_map_bounds()` and `center_on_tile()` methods
 3. Attach to Camera2D node in main.tscn
 
 ## World.gd Responsibilities

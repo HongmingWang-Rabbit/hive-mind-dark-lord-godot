@@ -1,6 +1,6 @@
 extends Camera2D
 ## Camera controller - handles panning via keyboard, mouse, and touch
-## Attach to Camera2D node. Call set_map_bounds() after map generation.
+## Attach to Camera2D node. Call set_map_bounds() then center_on_tile() after map generation.
 
 # Computed bounds (call set_map_bounds to configure)
 var _bounds: Rect2
@@ -10,11 +10,6 @@ var _bounds_initialized := false
 var _is_dragging := false
 var _drag_start_position: Vector2
 var _drag_start_camera: Vector2
-
-
-func _ready() -> void:
-	# Position set by center_on_tile() after map generation
-	pass
 
 
 func _process(delta: float) -> void:
