@@ -20,8 +20,8 @@ func _process(delta: float) -> void:
 	_handle_keyboard_pan(delta)
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	_handle_mouse_drag(event)
+func _input(event: InputEvent) -> void:
+	_handle_drag(event)
 
 
 ## Configure camera bounds based on map size in tiles
@@ -86,23 +86,23 @@ func _get_input_direction() -> Vector2:
 	return dir
 
 
-func _handle_mouse_drag(event: InputEvent) -> void:
+func _handle_drag(event: InputEvent) -> void:
+	# Mouse drag
 	if event is InputEventMouseButton:
-		_handle_drag_button(event as InputEventMouseButton)
+		var mouse_event := event as InputEventMouseButton
+		if _is_drag_button(mouse_event.button_index):
+			_set_dragging(mouse_event.pressed, mouse_event.position)
+
 	elif event is InputEventMouseMotion and _is_dragging:
-		_handle_drag_motion(event as InputEventMouseMotion)
+		_apply_drag((event as InputEventMouseMotion).position)
 
+	# Touch drag
+	elif event is InputEventScreenTouch:
+		var touch_event := event as InputEventScreenTouch
+		_set_dragging(touch_event.pressed, touch_event.position)
 
-func _handle_drag_button(event: InputEventMouseButton) -> void:
-	if not _is_drag_button(event.button_index):
-		return
-
-	if event.pressed:
-		_is_dragging = true
-		_drag_start_mouse = event.position
-		_drag_start_camera = position
-	else:
-		_is_dragging = false
+	elif event is InputEventScreenDrag and _is_dragging:
+		_apply_drag((event as InputEventScreenDrag).position)
 
 
 func _is_drag_button(button_index: MouseButton) -> bool:
@@ -112,8 +112,17 @@ func _is_drag_button(button_index: MouseButton) -> bool:
 	return false
 
 
-func _handle_drag_motion(event: InputEventMouseMotion) -> void:
-	var drag_delta := _drag_start_mouse - event.position
+func _set_dragging(pressed: bool, event_position: Vector2) -> void:
+	if pressed:
+		_is_dragging = true
+		_drag_start_mouse = event_position
+		_drag_start_camera = position
+	else:
+		_is_dragging = false
+
+
+func _apply_drag(current_position: Vector2) -> void:
+	var drag_delta := _drag_start_mouse - current_position
 	position = _drag_start_camera + drag_delta
 	_clamp_position()
 

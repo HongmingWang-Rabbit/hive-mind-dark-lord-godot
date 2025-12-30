@@ -164,6 +164,7 @@ Standalone camera script attached to Camera2D node. Handles all camera movement.
 ### Features
 - **Keyboard pan**: Arrow keys and WASD
 - **Mouse drag**: Configurable buttons (default: left/middle)
+- **Touch drag**: Single finger drag support
 - **Bounds clamping**: Prevents camera from leaving map area
 
 ### Public API

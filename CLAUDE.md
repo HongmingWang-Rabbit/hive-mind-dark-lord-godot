@@ -77,6 +77,7 @@ doc/            # Design docs
 
 - **Arrow keys / WASD**: Pan camera
 - **Mouse drag (left/middle)**: Pan camera
+- **Touch drag**: Pan camera
 - **Space**: Spread corruption
 
 ## Modifying Game Balance
