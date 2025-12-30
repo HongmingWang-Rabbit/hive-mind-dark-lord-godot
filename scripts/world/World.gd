@@ -6,6 +6,7 @@ const Tiles := preload("res://scripts/data/tile_data.gd")
 
 @onready var terrain_map: TileMapLayer = $TerrainMap
 @onready var corruption_map: TileMapLayer = $CorruptionMap
+@onready var camera: Camera2D = $Camera2D
 
 # Generation toggle (can override constants via inspector)
 @export var use_procedural_generation := true
@@ -24,6 +25,7 @@ var map_height: int
 
 
 func _ready() -> void:
+	_init_visual_settings()
 	_init_map_size()
 
 	if use_procedural_generation:
@@ -32,6 +34,11 @@ func _ready() -> void:
 		_count_existing_tiles()
 
 	GameManager.start_game()
+
+
+func _init_visual_settings() -> void:
+	corruption_map.modulate = GameConstants.CORRUPTION_COLOR
+	camera.position = GameConstants.CAMERA_CENTER
 
 
 func _init_map_size() -> void:

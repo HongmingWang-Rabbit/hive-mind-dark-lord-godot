@@ -69,6 +69,20 @@ const PROP_SCATTER_ATTEMPTS_MULTIPLIER := 5
 
 #endregion
 
+#region Display
+
+const VIEWPORT_WIDTH := 480
+const VIEWPORT_HEIGHT := 270
+const CAMERA_CENTER := Vector2(VIEWPORT_WIDTH / 2.0, VIEWPORT_HEIGHT / 2.0)
+
+#endregion
+
+#region Corruption Visual
+
+const CORRUPTION_COLOR := Color(0.6, 0.2, 0.8, 0.7)
+
+#endregion
+
 #region Directions
 
 const ORTHOGONAL_DIRS: Array[Vector2i] = [

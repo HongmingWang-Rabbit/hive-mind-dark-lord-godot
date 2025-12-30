@@ -67,15 +67,15 @@ signal human_possessed(position: Vector2)
 signal enemy_spotted(position: Vector2, threat_type: int)
 
 # Buildings
-signal building_placed(building_type: int, position: Vector2)
-signal building_destroyed(building_type: int, position: Vector2)
+signal building_placed(building_type: Enums.BuildingType, position: Vector2)
+signal building_destroyed(building_type: Enums.BuildingType, position: Vector2)
 
 # Commands
-signal attack_ordered(target_pos: Vector2, minion_percent: float, stance: int)
+signal attack_ordered(target_pos: Vector2, minion_percent: float, stance: Enums.Stance)
 signal retreat_ordered()
 
 # Game State
-signal threat_level_changed(new_level: int)
+signal threat_level_changed(new_level: Enums.ThreatLevel)
 signal game_won()
 signal game_lost()
 ```
@@ -116,6 +116,14 @@ FLOOR_WEIGHT_VARIATION  # Variation tile probability
 
 PROP_COUNT              # Number of props to place
 PROP_SCATTER_ATTEMPTS_MULTIPLIER  # Max attempts = count * this
+
+#region Display
+VIEWPORT_WIDTH          # Game viewport width (480)
+VIEWPORT_HEIGHT         # Game viewport height (270)
+CAMERA_CENTER           # Camera center position (Vector2)
+
+#region Corruption Visual
+CORRUPTION_COLOR        # Color for corruption overlay
 
 #region Directions
 ORTHOGONAL_DIRS         # [Vector2i] - 4 cardinal directions
