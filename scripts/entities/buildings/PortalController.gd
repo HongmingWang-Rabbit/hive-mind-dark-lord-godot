@@ -3,6 +3,7 @@ extends StaticBody2D
 ## Place in one world, then place matching portal in other world to activate
 
 const Data := preload("res://scripts/entities/buildings/PortalData.gd")
+const FogUtils := preload("res://scripts/utils/fog_utils.gd")
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
@@ -41,6 +42,9 @@ func setup(portal_tile_pos: Vector2i, portal_world: Enums.WorldType) -> void:
 
 	# Check if already linked (portal exists in other world)
 	_update_linked_status()
+
+	# Update fog around portal
+	EventBus.fog_update_requested.emit(world)
 
 
 func _setup_collision_shape() -> void:
@@ -116,3 +120,12 @@ func _on_travel_area_body_entered(body: Node2D) -> void:
 	# Switch view to follow the entity
 	WorldManager.switch_world(target_world)
 	_travel_cooldown = GameConstants.PORTAL_TRAVEL_COOLDOWN
+
+
+#region Fog of War
+
+func get_visible_tiles() -> Array[Vector2i]:
+	## Returns array of tiles visible around portal
+	return FogUtils.get_tiles_in_sight_range(tile_pos, Data.SIGHT_RANGE)
+
+#endregion

@@ -4,11 +4,13 @@ extends Node2D
 ##
 ## Dual World System:
 ##   HumanWorld    - Normal colors, corruption spreads only near portals
-##   CorruptedWorld - Purple tint, atmospheric particles, starts fully corrupted
+##   CorruptedWorld - Purple tint, atmospheric particles, small initial corruption
 ##
 ## Each world has identical terrain layout (floor, structures)
+## Both worlds have fog of war that clears as entities explore or corruption spreads
 
 const Tiles := preload("res://scripts/data/tile_data.gd")
+const FogUtils := preload("res://scripts/utils/fog_utils.gd")
 const DarkLordScene := preload("res://scenes/entities/dark_lord/dark_lord.tscn")
 
 # World containers
@@ -25,6 +27,10 @@ const DarkLordScene := preload("res://scenes/entities/dark_lord/dark_lord.tscn")
 @onready var corrupted_structure_map: TileMapLayer = $CorruptedWorld/StructureMap
 @onready var corrupted_corruption_map: TileMapLayer = $CorruptedWorld/CorruptionMap
 @onready var atmosphere_particles: GPUParticles2D = $CorruptedWorld/AtmosphereParticles
+
+# Fog of war layers
+@onready var human_fog_map: TileMapLayer = $HumanWorld/FogMap
+@onready var corrupted_fog_map: TileMapLayer = $CorruptedWorld/FogMap
 
 # Per-world entity containers
 @onready var human_entities: Node2D = $HumanWorld/Entities
@@ -45,6 +51,10 @@ var corrupted_corrupted_tiles: Dictionary = {}
 var occupied_tiles: Dictionary = {}  # Shared - same layout in both worlds
 var total_tiles: int = 0
 
+# Fog of war state - tiles that have been revealed (permanently cleared for jam scope)
+var _human_explored_tiles: Dictionary = {}
+var _corrupted_explored_tiles: Dictionary = {}
+
 # Computed map bounds
 var map_width: int
 var map_height: int
@@ -63,12 +73,17 @@ func _ready() -> void:
 		_count_existing_tiles()
 
 	_setup_world_visuals()
+	_setup_fog()
 	_spawn_dark_lord()
 	_init_camera()
 	_show_world(WorldManager.active_world)
 
 	EventBus.world_switched.connect(_on_world_switched)
+	EventBus.fog_update_requested.connect(_on_fog_update_requested)
 	GameManager.start_game()
+
+	# Initial fog update for starting world
+	update_fog(WorldManager.active_world)
 
 
 func _init_map_size() -> void:
@@ -97,8 +112,8 @@ func _setup_world_visuals() -> void:
 	# Setup atmosphere particles
 	_setup_atmosphere_particles()
 
-	# Corrupted World starts fully corrupted
-	_fully_corrupt_corrupted_world()
+	# Initialize corruption in Corrupted World (small starting area, must expand)
+	_init_corrupted_world_corruption()
 
 
 func _setup_atmosphere_particles() -> void:
@@ -142,14 +157,18 @@ func _setup_atmosphere_particles() -> void:
 	atmosphere_particles.emitting = true
 
 
-func _fully_corrupt_corrupted_world() -> void:
-	for x in range(map_width):
-		for y in range(map_height):
-			var pos := Vector2i(x, y)
-			if corrupted_floor_map.get_cell_source_id(pos) != -1:
-				corrupted_corrupted_tiles[pos] = true
-				var floor_tile := corrupted_floor_map.get_cell_atlas_coords(pos)
-				corrupted_corruption_map.set_cell(pos, GameConstants.TILEMAP_SOURCE_ID, floor_tile)
+func _init_corrupted_world_corruption() -> void:
+	## Initialize corruption in Corrupted World around starting point only
+	## Corruption must be expanded over time (same as Human World)
+	var tiles := FogUtils.get_tiles_in_sight_range(
+		_initial_corruption_tile,
+		GameConstants.INITIAL_CORRUPTION_REVEAL_RADIUS
+	)
+	for pos: Vector2i in tiles:
+		if corrupted_floor_map.get_cell_source_id(pos) != -1:
+			corrupted_corrupted_tiles[pos] = true
+			var floor_tile := corrupted_floor_map.get_cell_atlas_coords(pos)
+			corrupted_corruption_map.set_cell(pos, GameConstants.TILEMAP_SOURCE_ID, floor_tile)
 
 
 func _spawn_dark_lord() -> void:
@@ -358,7 +377,7 @@ func _start_initial_corruption() -> void:
 	if occupied_tiles.has(center):
 		center = _find_nearest_free_tile(center)
 	_initial_corruption_tile = center
-	# Note: Don't call corrupt_tile here - corrupted world is fully corrupted in _setup_world_visuals
+	# Note: Initial corruption is set up in _init_corrupted_world_corruption() after map generation
 
 
 func _find_nearest_free_tile(from: Vector2i) -> Vector2i:
@@ -409,6 +428,11 @@ func corrupt_tile(tile_pos: Vector2i, world: Enums.WorldType = Enums.WorldType.C
 
 	var floor_tile := floor_map.get_cell_atlas_coords(tile_pos)
 	corruption_map.set_cell(tile_pos, GameConstants.TILEMAP_SOURCE_ID, floor_tile)
+
+	# Auto-reveal fog when corruption spreads in Corrupted World
+	if world == Enums.WorldType.CORRUPTED and GameConstants.FOG_ENABLED:
+		_corrupted_explored_tiles[tile_pos] = true
+		corrupted_fog_map.erase_cell(tile_pos)
 
 	EventBus.tile_corrupted.emit(tile_pos)
 	_update_corruption_percent()
@@ -471,6 +495,88 @@ func _update_corruption_percent() -> void:
 	# Calculate based on Human World corruption (that's what matters for winning)
 	var percent := float(human_corrupted_tiles.size()) / float(total_tiles)
 	GameManager.update_corruption(percent)
+
+#endregion
+
+
+#region Fog of War
+
+func _setup_fog() -> void:
+	if not GameConstants.FOG_ENABLED:
+		return
+
+	# Fill both worlds with fog
+	_fill_fog_map(human_fog_map, human_floor_map)
+	_fill_fog_map(corrupted_fog_map, corrupted_floor_map)
+
+	# Reveal initial corruption area in Corrupted World
+	_reveal_initial_corruption()
+
+
+func _fill_fog_map(fog_map: TileMapLayer, floor_map: TileMapLayer) -> void:
+	fog_map.modulate = GameConstants.FOG_COLOR
+	for x in range(map_width):
+		for y in range(map_height):
+			var pos := Vector2i(x, y)
+			if floor_map.get_cell_source_id(pos) != -1:
+				fog_map.set_cell(pos, GameConstants.TILEMAP_SOURCE_ID, Tiles.FOG_TILE)
+
+
+func _reveal_initial_corruption() -> void:
+	var tiles := FogUtils.get_tiles_in_sight_range(
+		_initial_corruption_tile,
+		GameConstants.INITIAL_CORRUPTION_REVEAL_RADIUS
+	)
+	for tile: Vector2i in tiles:
+		_corrupted_explored_tiles[tile] = true
+		corrupted_fog_map.erase_cell(tile)
+
+
+func update_fog(world: Enums.WorldType) -> void:
+	## Update fog visibility for a world based on entity sight ranges
+	## Once a tile is revealed, it stays revealed (no re-fogging for jam scope)
+	if not GameConstants.FOG_ENABLED:
+		return
+
+	var fog_map: TileMapLayer
+	var entities_container: Node2D
+	var explored_tiles: Dictionary
+	var use_corruption_reveal: bool
+
+	match world:
+		Enums.WorldType.HUMAN:
+			fog_map = human_fog_map
+			entities_container = human_entities
+			explored_tiles = _human_explored_tiles
+			use_corruption_reveal = false
+		Enums.WorldType.CORRUPTED:
+			fog_map = corrupted_fog_map
+			entities_container = corrupted_entities
+			explored_tiles = _corrupted_explored_tiles
+			use_corruption_reveal = true
+
+	# Gather visible tiles from entities
+	var newly_visible: Array[Vector2i] = []
+	for entity in entities_container.get_children():
+		if entity.has_method("get_visible_tiles"):
+			for tile: Vector2i in entity.get_visible_tiles():
+				if not explored_tiles.has(tile):
+					newly_visible.append(tile)
+
+	# In Corrupted World, corrupted tiles are always revealed
+	if use_corruption_reveal:
+		for tile_pos: Vector2i in corrupted_corrupted_tiles.keys():
+			if not explored_tiles.has(tile_pos):
+				newly_visible.append(tile_pos)
+
+	# Reveal newly visible tiles
+	for tile_pos: Vector2i in newly_visible:
+		explored_tiles[tile_pos] = true
+		fog_map.erase_cell(tile_pos)
+
+
+func _on_fog_update_requested(world: Enums.WorldType) -> void:
+	update_fog(world)
 
 #endregion
 

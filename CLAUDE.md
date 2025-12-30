@@ -34,6 +34,16 @@ GameManager    → Game state, win/lose conditions
   const Data := preload("res://scripts/entities/dark_lord/DarkLordData.gd")
   var speed := Data.WANDER_SPEED
   ```
+- `UITheme` - UI colors and styling constants:
+  ```gdscript
+  const UI := preload("res://scripts/ui/UITheme.gd")
+  label.add_theme_color_override("font_color", UI.ESSENCE_COLOR)
+  ```
+- `FogUtils` - Fog of war utility functions:
+  ```gdscript
+  const FogUtils := preload("res://scripts/utils/fog_utils.gd")
+  var tiles := FogUtils.get_tiles_in_sight_range(center, range)
+  ```
 
 ### Communication Pattern
 - **Events:** Systems communicate via `EventBus` signals
@@ -43,12 +53,13 @@ GameManager    → Game state, win/lose conditions
 
 ## Key Design Principles
 
-1. **No hardcoded values** - Shared values in `GameConstants`, entity-specific in `EntityData.gd`
+1. **No hardcoded values** - Shared values in `GameConstants`, entity-specific in `EntityData.gd`, UI in `UITheme.gd`
 2. **Tile data separation** - Change `TileData` to swap tilesets
 3. **Entity data separation** - Each entity type has its own `Data.gd` for configurable values
-4. **Enum-based types** - Use `Enums.*` for type safety
-5. **Signal decoupling** - Systems communicate via EventBus
-6. **Reset pattern** - `GameManager.reset_game()` resets all systems
+4. **UI theme separation** - All UI colors/styles in `UITheme.gd`, applied programmatically
+5. **Enum-based types** - Use `Enums.*` for type safety
+6. **Signal decoupling** - Systems communicate via EventBus
+7. **Reset pattern** - `GameManager.reset_game()` resets all systems
 
 ## Directory Structure
 
@@ -58,15 +69,18 @@ scripts/
   systems/      # Autoloads (GameManager, Essence, HivePool, EventBus, WorldManager)
   world/        # World.gd, CameraController.gd
   entities/     # Entity scripts organized by entity type
-    dark_lord/  # DarkLordData.gd, DarkLordController.gd
-    buildings/  # PortalData.gd, PortalController.gd
+	dark_lord/  # DarkLordData.gd, DarkLordController.gd
+	buildings/  # PortalData.gd, PortalController.gd
   ui/           # UI controller scripts
-    HUDController.gd
+	HUDController.gd
+	UITheme.gd  # UI colors and styling constants
+  utils/        # Utility scripts (preload pattern)
+	fog_utils.gd  # Fog of war visibility calculations
 scenes/
   world/        # main.tscn
   entities/     # Entity scenes organized by entity type
-    dark_lord/  # dark_lord.tscn
-    buildings/  # portal.tscn
+	dark_lord/  # dark_lord.tscn
+	buildings/  # portal.tscn
   ui/           # hud.tscn
 resources/      # Tilesets, Kenney assets
 doc/            # Design docs
@@ -125,6 +139,10 @@ CORRUPTION_COLOR
 HUMAN_WORLD_TINT, CORRUPTED_WORLD_TINT
 CORRUPTED_PARTICLES_* (AMOUNT, LIFETIME, COLOR, DIRECTION, SPREAD, GRAVITY, VELOCITY, SCALE)
 PORTAL_CORRUPTION_RADIUS, PORTAL_TRAVEL_COOLDOWN
+
+# Fog of War
+FOG_ENABLED, FOG_COLOR
+INITIAL_CORRUPTION_REVEAL_RADIUS
 ```
 
 ## Changing Tileset
@@ -147,3 +165,4 @@ const CHAR_SKELETON := Vector2i(3, 7)
 - Use `randi_range()` instead of `randi() %` for random numbers
 - Call `GameManager.reset_game()` to reset all systems
 - Set configurable scene values (scale, collision shapes) from Data in `_ready()`
+- For entity visibility (fog), implement `get_visible_tiles()` using `FogUtils.get_tiles_in_sight_range()`

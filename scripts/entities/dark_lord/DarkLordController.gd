@@ -5,6 +5,7 @@ extends CharacterBody2D
 const Data := preload("res://scripts/entities/dark_lord/DarkLordData.gd")
 const PortalData := preload("res://scripts/entities/buildings/PortalData.gd")
 const PortalScene := preload("res://scenes/entities/buildings/portal.tscn")
+const FogUtils := preload("res://scripts/utils/fog_utils.gd")
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
@@ -52,6 +53,8 @@ func _move_toward_target() -> void:
 		velocity = Vector2.ZERO
 		_is_moving = false
 		_start_wander_timer()
+		# Update fog when reaching new position
+		EventBus.fog_update_requested.emit(WorldManager.active_world)
 	else:
 		# Flip sprite based on movement direction
 		if velocity.x != 0:
@@ -104,3 +107,13 @@ func _try_place_portal() -> void:
 	var portal := PortalScene.instantiate()
 	get_parent().add_child(portal)
 	portal.setup(current_tile, WorldManager.active_world)
+
+
+#region Fog of War
+
+func get_visible_tiles() -> Array[Vector2i]:
+	## Returns array of tiles visible from Dark Lord's position
+	var center := Vector2i(global_position / GameConstants.TILE_SIZE)
+	return FogUtils.get_tiles_in_sight_range(center, Data.SIGHT_RANGE)
+
+#endregion

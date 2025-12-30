@@ -51,6 +51,9 @@ const CHAR_DARK_LORD := Vector2i(2, 9)
 # Buildings
 const PORTAL := Vector2i(3, 6)  # Using door tile as portal visual
 
+# Fog of war
+const FOG_TILE := Vector2i(0, 0)  # Solid tile for fog overlay
+
 
 ## Helper to get a random floor tile
 static func get_random_floor() -> Vector2i:

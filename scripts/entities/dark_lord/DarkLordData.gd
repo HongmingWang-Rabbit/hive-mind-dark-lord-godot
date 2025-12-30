@@ -7,3 +7,6 @@ const SPRITE_SIZE_RATIO := 1.2  # Sprite visual size relative to collision diame
 const WANDER_SPEED := 30.0
 const WANDER_INTERVAL_MIN := 1.0
 const WANDER_INTERVAL_MAX := 3.0
+
+# Fog of war
+const SIGHT_RANGE := 6  # Tiles visible around Dark Lord

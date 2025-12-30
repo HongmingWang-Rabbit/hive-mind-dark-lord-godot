@@ -34,6 +34,16 @@ var skeleton := Tiles.CHAR_SKELETON
 var random_prop := Tiles.get_random_prop()
 ```
 
+### FogUtils (preload utility)
+Fog of war utility functions. Used by entities to calculate visible tiles.
+
+```gdscript
+const FogUtils := preload("res://scripts/utils/fog_utils.gd")
+
+# Get tiles within Manhattan distance:
+var tiles := FogUtils.get_tiles_in_sight_range(center, range)
+```
+
 **Why preload instead of autoload?**
 - Constants available at parse time (no runtime dependency issues)
 - Explicit dependency declaration in each file that uses it
@@ -87,6 +97,9 @@ signal world_switched(new_world: Enums.WorldType)
 signal portal_placed(tile_pos: Vector2i, world: Enums.WorldType)
 signal portal_activated(tile_pos: Vector2i)
 signal corruption_cleared(tile_pos: Vector2i)
+
+# Fog of War
+signal fog_update_requested(world: Enums.WorldType)
 ```
 
 ## GameConstants Reference
@@ -166,6 +179,11 @@ CORRUPTED_PARTICLES_SCALE_MIN/MAX     # 0.3 / 0.6
 CORRUPTED_PARTICLES_TEXTURE_SIZE      # 8 - pixel size of radial gradient texture
 PORTAL_CORRUPTION_RADIUS     # 5 tiles - corruption spread range from portals
 PORTAL_TRAVEL_COOLDOWN       # 1.0s - delay between world switches
+
+#region Fog of War
+FOG_ENABLED                  # true - toggle fog system
+FOG_COLOR                    # Color(0, 0, 0, 0.95) - unexplored fog opacity
+INITIAL_CORRUPTION_REVEAL_RADIUS  # 3 tiles - starting revealed area
 ```
 
 ## Scene Tree (main.tscn)
@@ -176,12 +194,14 @@ Main (World.gd)
 │   ├── FloorMap [TileMapLayer]
 │   ├── StructureMap [TileMapLayer]
 │   ├── CorruptionMap [TileMapLayer]
-│   └── Entities [Node2D] - Entities in Human World
-├── CorruptedWorld [Node2D] - Dark world, fully corrupted, particles
+│   ├── Entities [Node2D] - Entities in Human World
+│   └── FogMap [TileMapLayer, z_index=100] - Fog of war overlay
+├── CorruptedWorld [Node2D] - Dark world, small initial corruption
 │   ├── FloorMap [TileMapLayer]
 │   ├── StructureMap [TileMapLayer]
 │   ├── CorruptionMap [TileMapLayer]
 │   ├── Entities [Node2D] - Entities in Corrupted World (Dark Lord spawns here)
+│   ├── FogMap [TileMapLayer, z_index=100] - Fog of war overlay
 │   └── AtmosphereParticles [GPUParticles2D]
 ├── UI [CanvasLayer]
 │   └── HUD (HUDController.gd)
@@ -195,25 +215,26 @@ Main (World.gd)
 └── Camera2D (CameraController.gd)
 ```
 
-Both worlds have identical terrain layout but **separate entities**. Each world has its own Entities container. Entities exist in exactly one world at a time and must travel through portals to move between worlds. Only one world is visible at a time (view toggle), but entities remain in their world.
+Both worlds have identical terrain layout but **separate entities and fog**. Each world has its own Entities container and FogMap. Entities exist in exactly one world at a time and must travel through portals to move between worlds. Only one world is visible at a time (view toggle), but entities remain in their world.
 
 ## HUDController.gd
 
-Manages UI elements and player interactions.
+Manages UI elements and player interactions. Applies visual theme from UITheme.gd.
 
 ### Features
 - **Essence display**: Updates when `Essence.essence_changed` fires
 - **Corruption display**: Updates when `EventBus.corruption_changed` fires
 - **Threat display**: Updates when `EventBus.threat_level_changed` fires
 - **World switch button**: Toggles visibility between Corrupted/Human world (view only, does not move entities)
+- **Themed styling**: All colors and styles applied programmatically from UITheme.gd
 
 ### UI Text Constants
 ```gdscript
-WORLD_BUTTON_CORRUPTED  # "View: Corrupted"
-WORLD_BUTTON_HUMAN      # "View: Human"
-ESSENCE_FORMAT          # "Essence: %d"
-CORRUPTION_FORMAT       # "Corruption: %d%%"
-THREAT_FORMAT           # "Threat: %s"
+WORLD_BUTTON_CORRUPTED  # "Corrupt"
+WORLD_BUTTON_HUMAN      # "Human"
+ESSENCE_FORMAT          # "E:%d" (compact for 480x270 viewport)
+CORRUPTION_FORMAT       # "C:%d%%"
+THREAT_FORMAT           # "T:%s"
 THREAT_LEVEL_NAMES      # ["None", "Police", "Military", "Heavy"]
 ```
 
@@ -223,6 +244,47 @@ EventBus.corruption_changed
 EventBus.threat_level_changed
 EventBus.world_switched
 Essence.essence_changed
+```
+
+## UITheme.gd
+
+UI theme data script containing all visual constants for the HUD. Uses preload pattern.
+
+### Usage
+```gdscript
+const UI := preload("res://scripts/ui/UITheme.gd")
+label.add_theme_color_override("font_color", UI.ESSENCE_COLOR)
+```
+
+### Constants
+```gdscript
+#region Panel Colors
+PANEL_BG_COLOR, PANEL_BORDER_COLOR
+PANEL_BORDER_WIDTH, PANEL_CORNER_RADIUS
+PANEL_MARGIN, PANEL_MARGIN_SMALL
+
+#region Button Colors
+BUTTON_BG_COLOR, BUTTON_BG_HOVER_COLOR
+BUTTON_BORDER_COLOR, BUTTON_BORDER_HOVER_COLOR
+BUTTON_FONT_COLOR, BUTTON_FONT_HOVER_COLOR
+BUTTON_CORNER_RADIUS, BUTTON_BORDER_WIDTH
+BUTTON_MARGIN_H, BUTTON_MARGIN_V
+
+#region Label Colors - Stats
+ESSENCE_COLOR, ESSENCE_SHADOW_COLOR
+CORRUPTION_COLOR, CORRUPTION_SHADOW_COLOR
+THREAT_COLOR, THREAT_SHADOW_COLOR
+
+#region Label Colors - Minions
+HEADER_COLOR, HEADER_SHADOW_COLOR
+CRAWLER_COLOR, BRUTE_COLOR, STALKER_COLOR
+
+#region Layout
+SHADOW_OFFSET
+TOP_BAR_SEPARATION, SIDE_PANEL_SEPARATION, SEPARATOR_WIDTH
+
+#region Font
+FONT_SIZE, FONT_SIZE_HEADER  # 8px for pixel art viewport
 ```
 
 ## System Reset Flow
@@ -278,10 +340,11 @@ reset()                              # Reset to initial state
 
 1. **Dual World Management** - Two parallel worlds with identical terrain
 2. **Map Generation** - Procedural floor, buildings, props (same in both worlds)
-3. **Corruption System** - Per-world corruption tracking
+3. **Corruption System** - Per-world corruption tracking (both worlds start with small initial area)
 4. **World Switching** - Toggle visibility based on WorldManager.active_world
 5. **Entity Management** - Per-world entity containers, entity transfer between worlds
 6. **Atmosphere Particles** - Visual effects in Corrupted World
+7. **Fog of War** - Per-world fog that reveals via entity sight and corruption spread
 
 ### Tile Layers (per world)
 | Layer | Human World | Corrupted World |
@@ -290,6 +353,7 @@ reset()                              # Reset to initial state
 | StructureMap | `human_structure_map` | `corrupted_structure_map` |
 | CorruptionMap | `human_corruption_map` | `corrupted_corruption_map` |
 | Entities | `human_entities` | `corrupted_entities` |
+| FogMap | `human_fog_map` | `corrupted_fog_map` |
 
 ### Entity Management
 - `human_entities: Node2D` - Container for entities in Human World
@@ -299,17 +363,24 @@ Entities exist in exactly one world at a time. When the view switches, entities 
 
 ### Corruption Tracking
 - `human_corrupted_tiles: Dictionary` - Corruption in Human World (spreads near portals)
-- `corrupted_corrupted_tiles: Dictionary` - Corruption in Corrupted World (starts full)
+- `corrupted_corrupted_tiles: Dictionary` - Corruption in Corrupted World (starts small, must expand)
 
-Corruption spreads on floor tiles; structures render above corruption.
+Both worlds start with small initial corruption around spawn point. Corruption spreads on floor tiles; structures render above corruption.
+
+### Fog of War Tracking
+- `_human_explored_tiles: Dictionary` - Revealed tiles in Human World
+- `_corrupted_explored_tiles: Dictionary` - Revealed tiles in Corrupted World
+
+Fog clears permanently when explored (no re-fogging for jam scope). In Corrupted World, corruption spread auto-reveals tiles.
 
 ### Key Functions
 ```gdscript
 generate_map()           # Full procedural generation
-corrupt_tile(pos)        # Corrupt single tile
+corrupt_tile(pos)        # Corrupt single tile (auto-reveals fog in Corrupted World)
 spread_corruption()      # Expand to random adjacent tile
 get_entities_container(world)                    # Get Entities node for a world
 transfer_entity_to_world(entity, target_world)   # Move entity between worlds (preserves position)
+update_fog(world)        # Reveal tiles based on entity sight ranges
 ```
 
 ### Export Variables
@@ -344,12 +415,14 @@ SPRITE_SIZE_RATIO   # float - sprite size relative to collision (1.0 = match)
 WANDER_SPEED        # float - movement speed
 WANDER_INTERVAL_MIN # float - min wait between moves
 WANDER_INTERVAL_MAX # float - max wait between moves
+SIGHT_RANGE         # int - tiles visible around Dark Lord (fog of war)
 ```
 
 ### Current Behavior
 - Wanders randomly in 8 directions
 - Moves one tile at a time
 - Waits random interval between moves
+- Reveals fog in sight range when moving (via `get_visible_tiles()`)
 
 ### Scene Structure (dark_lord.tscn)
 ```
@@ -384,6 +457,7 @@ SPRITE_SIZE_RATIO       # float - sprite size relative to collision
 ACTIVE_COLOR            # Color - visual when linked
 INACTIVE_COLOR          # Color - visual when not linked
 PLACEMENT_COST          # int - essence cost to place
+SIGHT_RANGE             # int - tiles visible around portal (fog of war)
 ```
 
 ### Portal States
@@ -408,6 +482,34 @@ Portal [StaticBody2D] (PortalController.gd)
 4. Cooldown prevents rapid world-hopping
 
 **Key distinction**: World view switching (UI button, debug key) only changes which world is visible. Portal travel actually moves the entity between worlds.
+
+---
+
+## Entity Visibility Interface (Fog of War)
+
+Entities that reveal fog implement `get_visible_tiles() -> Array[Vector2i]`. Called by `World.update_fog()` to determine which tiles to reveal.
+
+### FogUtils.gd (preload utility)
+```gdscript
+const FogUtils := preload("res://scripts/utils/fog_utils.gd")
+
+# Static function for Manhattan distance tile calculation
+FogUtils.get_tiles_in_sight_range(center: Vector2i, sight_range: int) -> Array[Vector2i]
+```
+
+### Implementing on New Entities
+```gdscript
+const FogUtils := preload("res://scripts/utils/fog_utils.gd")
+
+func get_visible_tiles() -> Array[Vector2i]:
+    var center := Vector2i(global_position / GameConstants.TILE_SIZE)
+    return FogUtils.get_tiles_in_sight_range(center, Data.SIGHT_RANGE)
+```
+
+### Fog Reveal Triggers
+- **Entity movement**: Emit `EventBus.fog_update_requested.emit(WorldManager.active_world)`
+- **Entity spawned/placed**: Same as movement
+- **Corruption spread** (Corrupted World only): Auto-reveals in `corrupt_tile()`
 
 ---
 

@@ -11,72 +11,76 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="TopBar" type="HBoxContainer" parent="."]
+[node name="TopBar" type="PanelContainer" parent="."]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_left = 4.0
-offset_top = 4.0
-offset_right = -4.0
-offset_bottom = 24.0
+offset_bottom = 14.0
 grow_horizontal = 2
 
-[node name="EssenceLabel" type="Label" parent="TopBar"]
+[node name="HBox" type="HBoxContainer" parent="TopBar"]
+layout_mode = 2
+
+[node name="EssenceLabel" type="Label" parent="TopBar/HBox"]
 layout_mode = 2
 text = "Essence: 100"
 
-[node name="Spacer1" type="Control" parent="TopBar"]
+[node name="Sep1" type="VSeparator" parent="TopBar/HBox"]
 layout_mode = 2
-size_flags_horizontal = 3
 
-[node name="CorruptionLabel" type="Label" parent="TopBar"]
+[node name="CorruptionLabel" type="Label" parent="TopBar/HBox"]
 layout_mode = 2
 text = "Corruption: 0%"
 
-[node name="Spacer2" type="Control" parent="TopBar"]
+[node name="Sep2" type="VSeparator" parent="TopBar/HBox"]
 layout_mode = 2
-size_flags_horizontal = 3
 
-[node name="ThreatLabel" type="Label" parent="TopBar"]
+[node name="ThreatLabel" type="Label" parent="TopBar/HBox"]
 layout_mode = 2
 text = "Threat: None"
 
-[node name="Spacer3" type="Control" parent="TopBar"]
+[node name="Spacer" type="Control" parent="TopBar/HBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="WorldButton" type="Button" parent="TopBar"]
+[node name="WorldButton" type="Button" parent="TopBar/HBox"]
 layout_mode = 2
-text = "View: Corrupted"
+text = "World"
 
-[node name="SidePanel" type="VBoxContainer" parent="."]
+[node name="SidePanel" type="PanelContainer" parent="."]
+visible = false
 layout_mode = 1
 anchors_preset = 11
 anchor_left = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -80.0
-offset_top = 28.0
+offset_left = -50.0
+offset_top = 16.0
 grow_horizontal = 0
 grow_vertical = 2
 
-[node name="MinionHeader" type="Label" parent="SidePanel"]
+[node name="VBox" type="VBoxContainer" parent="SidePanel"]
+layout_mode = 2
+
+[node name="MinionHeader" type="Label" parent="SidePanel/VBox"]
 layout_mode = 2
 text = "Minions"
+horizontal_alignment = 1
 
-[node name="CrawlerCount" type="Label" parent="SidePanel"]
+[node name="CrawlerCount" type="Label" parent="SidePanel/VBox"]
 layout_mode = 2
 text = "Crawler: 0"
 
-[node name="BruteCount" type="Label" parent="SidePanel"]
+[node name="BruteCount" type="Label" parent="SidePanel/VBox"]
 layout_mode = 2
 text = "Brute: 0"
 
-[node name="StalkerCount" type="Label" parent="SidePanel"]
+[node name="StalkerCount" type="Label" parent="SidePanel/VBox"]
 layout_mode = 2
 text = "Stalker: 0"
 
 [node name="ContextPanel" type="Control" parent="."]
+visible = false
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0

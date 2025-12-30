@@ -28,3 +28,6 @@ signal world_switched(new_world: Enums.WorldType)
 signal portal_placed(tile_pos: Vector2i, world: Enums.WorldType)
 signal portal_activated(tile_pos: Vector2i)
 signal corruption_cleared(tile_pos: Vector2i)
+
+# Fog of war events
+signal fog_update_requested(world: Enums.WorldType)

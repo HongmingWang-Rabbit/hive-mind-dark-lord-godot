@@ -121,6 +121,14 @@ const ALL_DIRS: Array[Vector2i] = [
 
 #endregion
 
+#region Fog of War
+
+const FOG_ENABLED := true
+const FOG_COLOR := Color(0.0, 0.0, 0.0, 0.95)  # Unexplored fog color
+const INITIAL_CORRUPTION_REVEAL_RADIUS := 3    # Tiles revealed at start around spawn
+
+#endregion
+
 #region Dual World
 
 # World visual theming

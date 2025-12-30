@@ -12,3 +12,6 @@ const INACTIVE_COLOR := Color(0.3, 0.3, 0.3, 1.0)  # Gray when not linked
 
 # Essence cost to place portal
 const PLACEMENT_COST := 20
+
+# Fog of war
+const SIGHT_RANGE := 4  # Tiles visible around portal
