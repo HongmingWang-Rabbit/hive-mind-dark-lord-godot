@@ -32,6 +32,7 @@ const GROUP_CIVILIANS := "civilians"
 const GROUP_ANIMALS := "animals"
 const GROUP_KILLABLE := "killable"
 const GROUP_MINIONS := "minions"
+const GROUP_THREATS := "threats"  # Dark Lord + minions - entities that civilians flee from
 
 #endregion
 
@@ -48,6 +49,49 @@ const DARK_LORD_ATTACK_COOLDOWN := 0.5  # Seconds between attacks
 
 const CIVILIAN_HP := 10
 const ANIMAL_HP := 10
+
+#endregion
+
+#region Combat - Enemies
+
+const POLICE_HP := 20
+const POLICE_DAMAGE := 5
+const POLICE_SPEED := 40.0
+
+const MILITARY_HP := 40
+const MILITARY_DAMAGE := 10
+const MILITARY_SPEED := 35.0
+
+const HEAVY_HP := 80
+const HEAVY_DAMAGE := 20
+const HEAVY_SPEED := 25.0
+
+const SPECIAL_FORCES_HP := 50
+const SPECIAL_FORCES_DAMAGE := 15
+const SPECIAL_FORCES_SPEED := 45.0
+
+#endregion
+
+#region Enemy Spawning
+
+const POLICE_SPAWN_INTERVAL := 10.0  # Seconds between spawns
+const MILITARY_SPAWN_INTERVAL := 8.0
+const HEAVY_SPAWN_INTERVAL := 15.0
+
+const MAX_POLICE := 5
+const MAX_MILITARY := 3
+const MAX_HEAVY := 2
+const MAX_SPECIAL_FORCES := 2
+
+const ENEMY_SPAWN_MARGIN := 2  # Tiles from map edge to spawn
+
+#endregion
+
+#region Entity Groups - Enemies
+
+const GROUP_ENEMIES := "enemies"
+const GROUP_POLICE := "police"
+const GROUP_MILITARY := "military"
 
 #endregion
 
@@ -134,6 +178,11 @@ const CAMERA_PAN_DOWN_KEYS: Array[Key] = [KEY_S]
 
 const KEY_PLACE_PORTAL: Key = KEY_P
 const KEY_SWITCH_WORLD: Key = KEY_TAB  # Debug only
+
+# Minion spawning hotkeys
+const KEY_SPAWN_CRAWLER: Key = KEY_1
+const KEY_SPAWN_BRUTE: Key = KEY_2
+const KEY_SPAWN_STALKER: Key = KEY_3
 
 #endregion
 

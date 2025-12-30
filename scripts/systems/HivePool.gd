@@ -42,6 +42,16 @@ func kill_minion(type: Enums.MinionType, assignment: Enums.MinionAssignment) -> 
 		Essence.remove_drain(stats.get("upkeep", 0))
 
 
+func on_minion_killed(type: Enums.MinionType) -> void:
+	## Called by MinionController when a minion dies
+	## Decrements count and removes upkeep drain
+	# Find which assignment this minion was in (default to IDLE)
+	for assignment in Enums.MinionAssignment.values():
+		if pool[type][assignment] > 0:
+			kill_minion(type, assignment)
+			return
+
+
 func send_attack(target: Vector2, percent: float, stance: Enums.Stance) -> void:
 	for type in pool.keys():
 		var idle_count: int = pool[type][Enums.MinionAssignment.IDLE]

@@ -87,6 +87,8 @@ scripts/
     dark_lord/  # DarkLordData.gd, DarkLordController.gd
     buildings/  # PortalData.gd, PortalController.gd
     humans/     # CivilianData.gd, CivilianController.gd, AnimalData.gd, AnimalController.gd
+    minions/    # MinionData.gd, MinionController.gd
+    enemies/    # EnemyData.gd, EnemyController.gd
   ui/           # UI controller scripts
     HUDController.gd
     UITheme.gd  # UI colors and styling constants
@@ -98,6 +100,8 @@ scenes/
     dark_lord/  # dark_lord.tscn
     buildings/  # portal.tscn
     humans/     # civilian.tscn, animal.tscn
+    minions/    # minion.tscn
+    enemies/    # enemy.tscn
   ui/           # hud.tscn
 resources/      # Tilesets, Kenney assets
 doc/            # Design docs
@@ -123,6 +127,9 @@ doc/            # Design docs
 - **Touch drag**: Pan camera
 - **Space**: Spread corruption
 - **P**: Place portal at Dark Lord position
+- **1**: Spawn Crawler minion (costs 20 essence)
+- **2**: Spawn Brute minion (costs 50 essence)
+- **3**: Spawn Stalker minion (costs 40 essence)
 - **World Button (UI)**: Switch between Corrupted/Human world view
 - **Tab**: Switch between Corrupted/Human world (debug)
 
@@ -148,7 +155,22 @@ CIVILIAN_HP, ANIMAL_HP
 
 # Entity Groups (use for add_to_group/is_in_group)
 GROUP_DARK_LORD, GROUP_CIVILIANS, GROUP_ANIMALS
-GROUP_KILLABLE, GROUP_MINIONS
+GROUP_KILLABLE, GROUP_MINIONS, GROUP_THREATS
+GROUP_ENEMIES, GROUP_POLICE, GROUP_MILITARY
+
+# Combat - Enemies
+POLICE_HP, POLICE_DAMAGE, POLICE_SPEED
+MILITARY_HP, MILITARY_DAMAGE, MILITARY_SPEED
+HEAVY_HP, HEAVY_DAMAGE, HEAVY_SPEED
+SPECIAL_FORCES_HP, SPECIAL_FORCES_DAMAGE, SPECIAL_FORCES_SPEED
+
+# Enemy Spawning
+POLICE_SPAWN_INTERVAL, MILITARY_SPAWN_INTERVAL, HEAVY_SPAWN_INTERVAL
+MAX_POLICE, MAX_MILITARY, MAX_HEAVY, MAX_SPECIAL_FORCES
+ENEMY_SPAWN_MARGIN
+
+# Input Keys - Minion Spawning
+KEY_SPAWN_CRAWLER, KEY_SPAWN_BRUTE, KEY_SPAWN_STALKER
 
 # Win/Lose
 WIN_THRESHOLD, THREAT_THRESHOLDS

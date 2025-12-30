@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://bxk2etrdneiem"]
+[gd_scene load_steps=6 format=3 uid="uid://bxk2etrdneiem"]
 
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="1_hud"]
 [ext_resource type="TileSet" uid="uid://claey8koq7by0" path="res://resources/dungeon_tileset.tres" id="2_tileset"]
 [ext_resource type="Script" uid="uid://dow3lho3mi3jn" path="res://scripts/world/World.gd" id="3_world"]
 [ext_resource type="Script" uid="uid://dqb0xbvko3ib4" path="res://scripts/world/CameraController.gd" id="4_camera"]
+[ext_resource type="PackedScene" path="res://scenes/ui/game_over_screen.tscn" id="5_game_over"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("3_world")
@@ -50,6 +51,8 @@ lifetime = 3.0
 [node name="UI" type="CanvasLayer" parent="."]
 
 [node name="HUD" parent="UI" instance=ExtResource("1_hud")]
+
+[node name="GameOverScreen" parent="." instance=ExtResource("5_game_over")]
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(240, 135)

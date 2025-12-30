@@ -18,12 +18,15 @@ var _target_position: Vector2
 var _is_moving := false
 
 # Combat
+var _hp: int
 var _current_target: Node2D = null
 var _targets_in_range: Array[Node2D] = []
 
 
 func _ready() -> void:
 	add_to_group(GameConstants.GROUP_DARK_LORD)
+	add_to_group(GameConstants.GROUP_THREATS)
+	_hp = GameConstants.DARK_LORD_HP
 	_setup_collision_shape()
 	_setup_sprite_scale()
 	_setup_combat()
@@ -166,5 +169,24 @@ func _on_attack_timer_timeout() -> void:
 	if _current_target != null and not is_instance_valid(_current_target):
 		_current_target = _targets_in_range[0] if _targets_in_range.size() > 0 else null
 	_try_attack()
+
+
+func take_damage(amount: int) -> void:
+	_hp -= amount
+	if _hp <= 0:
+		_die()
+
+
+func _die() -> void:
+	EventBus.game_lost.emit()
+	# Don't queue_free - let the game over screen handle cleanup
+
+
+func get_hp() -> int:
+	return _hp
+
+
+func get_max_hp() -> int:
+	return GameConstants.DARK_LORD_HP
 
 #endregion

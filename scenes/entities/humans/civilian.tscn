@@ -1,10 +1,13 @@
-[gd_scene load_steps=4 format=4 uid="uid://civilian_scene"]
+[gd_scene load_steps=5 format=4 uid="uid://civilian_scene"]
 
 [ext_resource type="Script" path="res://scripts/entities/humans/CivilianController.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/sprites/humans/office_worker_civilian.png" id="2_sprite"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_collision"]
 radius = 5.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_detection"]
+radius = 48.0
 
 [node name="Civilian" type="CharacterBody2D"]
 script = ExtResource("1_script")
@@ -18,5 +21,13 @@ shape = SubResource("CircleShape2D_collision")
 
 [node name="WanderTimer" type="Timer" parent="."]
 one_shot = true
+
+[node name="DetectionArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DetectionArea"]
+shape = SubResource("CircleShape2D_detection")
 
 [connection signal="timeout" from="WanderTimer" to="." method="_on_wander_timer_timeout"]

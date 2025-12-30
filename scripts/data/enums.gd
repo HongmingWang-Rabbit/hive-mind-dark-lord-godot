@@ -17,3 +17,6 @@ enum WorldType {CORRUPTED, HUMAN}
 
 # Human World entities
 enum HumanType {CIVILIAN, ANIMAL}
+
+# Enemy types (military forces)
+enum EnemyType {POLICE, MILITARY, HEAVY, SPECIAL_FORCES}

@@ -693,6 +693,102 @@ Portal [StaticBody2D] (PortalController.gd)
 
 ---
 
+## Minion System
+
+Player-controlled units that follow the Dark Lord and attack enemies.
+
+### File Organization
+```
+scripts/entities/minions/
+├── MinionData.gd       # Minion constants (preload pattern)
+└── MinionController.gd # Minion behavior script
+
+scenes/entities/minions/
+└── minion.tscn         # Scene file
+```
+
+### Spawning
+- **Hotkeys**: 1 = Crawler, 2 = Brute, 3 = Stalker
+- Cost deducted from Essence
+- Spawned near Dark Lord's position
+- Added to HivePool for tracking
+
+### Behavior States
+| State | Description |
+|-------|-------------|
+| FOLLOW | Move toward Dark Lord, maintain follow distance |
+| ATTACK | Chase and attack enemies in range |
+| WANDER | Idle movement near Dark Lord |
+
+### Combat
+- Auto-attack entities in GROUP_KILLABLE
+- Damage/speed from GameConstants.MINION_STATS
+- On death: removed from HivePool, upkeep removed
+
+---
+
+## Enemy System
+
+Military forces that respond to threat level and attack the player.
+
+### File Organization
+```
+scripts/entities/enemies/
+├── EnemyData.gd        # Enemy constants (preload pattern)
+└── EnemyController.gd  # Enemy behavior script
+
+scenes/entities/enemies/
+└── enemy.tscn          # Scene file
+```
+
+### Enemy Types
+| Type | HP | Damage | Speed | Spawns At |
+|------|-----|--------|-------|-----------|
+| POLICE | 20 | 5 | 40 | POLICE threat |
+| MILITARY | 40 | 10 | 35 | MILITARY threat |
+| HEAVY | 80 | 20 | 25 | HEAVY threat |
+| SPECIAL_FORCES | 50 | 15 | 45 | HEAVY threat (Dark World invasion) |
+
+### Behavior States
+| State | Description |
+|-------|-------------|
+| PATROL | Wander near spawn point |
+| CHASE | Pursue detected threats |
+| ATTACK | Attack threats in range |
+
+### Spawning
+- Triggered by threat level changes (corruption %)
+- Spawns at map edges in Human World
+- Max count limits per type
+
+---
+
+## Game Over Screen
+
+Win/lose UI overlay that pauses the game and allows restart.
+
+### File Organization
+```
+scripts/ui/
+└── GameOverScreen.gd
+
+scenes/ui/
+└── game_over_screen.tscn
+```
+
+### Triggers
+- **Win**: Corruption reaches WIN_THRESHOLD (80%)
+- **Lose - Essence**: Essence depleted
+- **Lose - Dark Lord**: Dark Lord HP reaches 0
+
+### Connected Signals
+```gdscript
+EventBus.game_won  → _on_game_won()
+EventBus.game_lost → _on_game_lost()
+```
+
+---
+
 ## Entity Visibility Interface (Fog of War)
 
 Entities that reveal fog implement `get_visible_tiles() -> Array[Vector2i]`. Called by `World.update_fog()` to determine which tiles to reveal.

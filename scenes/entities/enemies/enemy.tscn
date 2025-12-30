@@ -1,0 +1,46 @@
+[gd_scene load_steps=6 format=4 uid="uid://enemy_scene"]
+
+[ext_resource type="Script" path="res://scripts/entities/enemies/EnemyController.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/sprites/military/military_soldier_tactical.png" id="2_sprite"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_collision"]
+radius = 5.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_detection"]
+radius = 48.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_attack"]
+radius = 14.0
+
+[node name="Enemy" type="CharacterBody2D"]
+script = ExtResource("1_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("2_sprite")
+texture_filter = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_collision")
+
+[node name="DetectionArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DetectionArea"]
+shape = SubResource("CircleShape2D_detection")
+
+[node name="AttackRange" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackRange"]
+shape = SubResource("CircleShape2D_attack")
+
+[node name="AttackTimer" type="Timer" parent="."]
+one_shot = true
+
+[node name="PatrolTimer" type="Timer" parent="."]
+one_shot = true
+
+[connection signal="timeout" from="AttackTimer" to="." method="_on_attack_timer_timeout"]
+[connection signal="timeout" from="PatrolTimer" to="." method="_on_patrol_timer_timeout"]

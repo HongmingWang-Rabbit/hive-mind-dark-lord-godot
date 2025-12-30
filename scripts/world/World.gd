@@ -14,6 +14,8 @@ const FogUtils := preload("res://scripts/utils/fog_utils.gd")
 const DarkLordScene := preload("res://scenes/entities/dark_lord/dark_lord.tscn")
 const CivilianScene := preload("res://scenes/entities/humans/civilian.tscn")
 const AnimalScene := preload("res://scenes/entities/humans/animal.tscn")
+const MinionScene := preload("res://scenes/entities/minions/minion.tscn")
+const EnemyScene := preload("res://scenes/entities/enemies/enemy.tscn")
 
 # World containers
 @onready var human_world: Node2D = $HumanWorld
@@ -65,6 +67,12 @@ var map_height: int
 var _initial_corruption_tile: Vector2i
 var _dark_lord: CharacterBody2D
 
+# Enemy spawning
+var _police_spawn_timer: float = 0.0
+var _military_spawn_timer: float = 0.0
+var _heavy_spawn_timer: float = 0.0
+var _current_threat_level: Enums.ThreatLevel = Enums.ThreatLevel.NONE
+
 
 func _ready() -> void:
 	_init_map_size()
@@ -83,6 +91,7 @@ func _ready() -> void:
 
 	EventBus.world_switched.connect(_on_world_switched)
 	EventBus.fog_update_requested.connect(_on_fog_update_requested)
+	EventBus.threat_level_changed.connect(_on_threat_level_changed)
 	GameManager.start_game()
 
 	# Initial fog update for starting world
@@ -639,5 +648,141 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == GameConstants.KEY_SWITCH_WORLD:
 		var target := Enums.WorldType.HUMAN if WorldManager.active_world == Enums.WorldType.CORRUPTED else Enums.WorldType.CORRUPTED
 		WorldManager.switch_world(target)
+
+	# Minion spawning hotkeys
+	if event is InputEventKey and event.pressed:
+		match event.keycode:
+			GameConstants.KEY_SPAWN_CRAWLER:
+				_try_spawn_minion(Enums.MinionType.CRAWLER)
+			GameConstants.KEY_SPAWN_BRUTE:
+				_try_spawn_minion(Enums.MinionType.BRUTE)
+			GameConstants.KEY_SPAWN_STALKER:
+				_try_spawn_minion(Enums.MinionType.STALKER)
+
+#endregion
+
+
+func _process(delta: float) -> void:
+	_process_enemy_spawning(delta)
+
+
+#region Enemy Spawning
+
+func _on_threat_level_changed(new_level: Enums.ThreatLevel) -> void:
+	_current_threat_level = new_level
+
+
+func _process_enemy_spawning(delta: float) -> void:
+	## Process enemy spawn timers based on current threat level
+	if _current_threat_level == Enums.ThreatLevel.NONE:
+		return
+
+	# Police spawn at POLICE threat and above
+	if _current_threat_level >= Enums.ThreatLevel.POLICE:
+		_police_spawn_timer += delta
+		if _police_spawn_timer >= GameConstants.POLICE_SPAWN_INTERVAL:
+			_police_spawn_timer = 0.0
+			_try_spawn_enemy(Enums.EnemyType.POLICE, GameConstants.MAX_POLICE)
+
+	# Military spawn at MILITARY threat and above
+	if _current_threat_level >= Enums.ThreatLevel.MILITARY:
+		_military_spawn_timer += delta
+		if _military_spawn_timer >= GameConstants.MILITARY_SPAWN_INTERVAL:
+			_military_spawn_timer = 0.0
+			_try_spawn_enemy(Enums.EnemyType.MILITARY, GameConstants.MAX_MILITARY)
+
+	# Heavy spawn at HEAVY threat
+	if _current_threat_level >= Enums.ThreatLevel.HEAVY:
+		_heavy_spawn_timer += delta
+		if _heavy_spawn_timer >= GameConstants.HEAVY_SPAWN_INTERVAL:
+			_heavy_spawn_timer = 0.0
+			_try_spawn_enemy(Enums.EnemyType.HEAVY, GameConstants.MAX_HEAVY)
+
+
+func _try_spawn_enemy(type: Enums.EnemyType, max_count: int) -> void:
+	## Try to spawn an enemy if under the max count
+	var current_count := _count_enemies_of_type(type)
+	if current_count >= max_count:
+		return
+
+	var spawn_pos := _get_enemy_spawn_position()
+	if spawn_pos == Vector2i(-1, -1):
+		return
+
+	var enemy := EnemyScene.instantiate()
+	enemy.setup(type)
+	human_entities.add_child(enemy)
+	enemy.global_position = Vector2(spawn_pos) * GameConstants.TILE_SIZE + Vector2(GameConstants.TILE_SIZE, GameConstants.TILE_SIZE) / 2.0
+
+
+func _count_enemies_of_type(type: Enums.EnemyType) -> int:
+	var group_name: String
+	match type:
+		Enums.EnemyType.POLICE:
+			group_name = GameConstants.GROUP_POLICE
+		Enums.EnemyType.MILITARY:
+			group_name = GameConstants.GROUP_MILITARY
+		_:
+			group_name = GameConstants.GROUP_ENEMIES
+
+	return get_tree().get_nodes_in_group(group_name).size()
+
+
+func _get_enemy_spawn_position() -> Vector2i:
+	## Get a spawn position at the edge of the map
+	var margin := GameConstants.ENEMY_SPAWN_MARGIN
+
+	# Try multiple positions at map edges
+	for _attempt in GameConstants.ENTITY_SPAWN_ATTEMPTS:
+		var edge := randi() % 4
+		var pos: Vector2i
+
+		match edge:
+			0:  # Top edge
+				pos = Vector2i(randi_range(margin, map_width - margin - 1), margin)
+			1:  # Bottom edge
+				pos = Vector2i(randi_range(margin, map_width - margin - 1), map_height - margin - 1)
+			2:  # Left edge
+				pos = Vector2i(margin, randi_range(margin, map_height - margin - 1))
+			3:  # Right edge
+				pos = Vector2i(map_width - margin - 1, randi_range(margin, map_height - margin - 1))
+
+		if _is_floor_tile(pos):
+			return pos
+
+	return Vector2i(-1, -1)
+
+#endregion
+
+
+#region Minion Spawning
+
+func _try_spawn_minion(type: Enums.MinionType) -> void:
+	## Try to spawn a minion of the given type near the Dark Lord
+	if not HivePool.spawn_minion(type):
+		return  # Can't afford
+
+	# Spawn near Dark Lord
+	if _dark_lord == null:
+		return
+
+	var minion := MinionScene.instantiate()
+	minion.setup(type)
+
+	# Get the world the Dark Lord is currently in
+	var dark_lord_world := _get_dark_lord_world()
+	var container := get_entities_container(dark_lord_world)
+	container.add_child(minion)
+
+	# Position near Dark Lord with small random offset
+	var offset := Vector2(randf_range(-16, 16), randf_range(-16, 16))
+	minion.global_position = _dark_lord.global_position + offset
+
+
+func _get_dark_lord_world() -> Enums.WorldType:
+	## Determine which world the Dark Lord is currently in
+	if _dark_lord.get_parent() == corrupted_entities:
+		return Enums.WorldType.CORRUPTED
+	return Enums.WorldType.HUMAN
 
 #endregion
