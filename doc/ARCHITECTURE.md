@@ -127,6 +127,10 @@ TILE_SIZE               # Tile size in pixels (16)
 CAMERA_PAN_SPEED        # Camera movement speed (200.0)
 CAMERA_EDGE_PADDING     # Pixels beyond map edges camera can see (32)
 CAMERA_DRAG_BUTTONS     # [MouseButton] - buttons that trigger camera drag
+CAMERA_PAN_LEFT_KEYS    # [Key] - keys for panning left (default: [KEY_A])
+CAMERA_PAN_RIGHT_KEYS   # [Key] - keys for panning right (default: [KEY_D])
+CAMERA_PAN_UP_KEYS      # [Key] - keys for panning up (default: [KEY_W])
+CAMERA_PAN_DOWN_KEYS    # [Key] - keys for panning down (default: [KEY_S])
 
 #region Corruption Visual
 CORRUPTION_COLOR        # Color for corruption overlay
@@ -162,10 +166,11 @@ GameManager.reset_game()  # Resets all systems
 Standalone camera script attached to Camera2D node. Handles all camera movement.
 
 ### Features
-- **Keyboard pan**: Arrow keys and WASD
+- **Keyboard pan**: Arrow keys (built-in) + configurable keys (default: WASD)
 - **Mouse drag**: Configurable buttons (default: left/middle)
 - **Touch drag**: Single finger drag support
 - **Bounds clamping**: Prevents camera from leaving map area
+- **Fully configurable**: All inputs defined in GameConstants
 
 ### Public API
 ```gdscript

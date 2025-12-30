@@ -84,6 +84,12 @@ const CAMERA_PAN_SPEED := 200.0
 const CAMERA_EDGE_PADDING := 32  # Pixels beyond map edges camera can see
 const CAMERA_DRAG_BUTTONS: Array[MouseButton] = [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE]
 
+# Keyboard pan keys (physical key codes for consistent layout across keyboard types)
+const CAMERA_PAN_LEFT_KEYS: Array[Key] = [KEY_A]
+const CAMERA_PAN_RIGHT_KEYS: Array[Key] = [KEY_D]
+const CAMERA_PAN_UP_KEYS: Array[Key] = [KEY_W]
+const CAMERA_PAN_DOWN_KEYS: Array[Key] = [KEY_S]
+
 #endregion
 
 #region Corruption Visual

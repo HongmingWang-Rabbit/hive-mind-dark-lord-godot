@@ -1,14 +1,14 @@
 extends Camera2D
-## Camera controller - handles panning via keyboard and mouse drag
-## Attach to Camera2D node. Call set_bounds() after map generation.
+## Camera controller - handles panning via keyboard, mouse, and touch
+## Attach to Camera2D node. Call set_map_bounds() after map generation.
 
-# Computed bounds (call set_bounds to configure)
+# Computed bounds (call set_map_bounds to configure)
 var _bounds: Rect2
 var _bounds_initialized := false
 
 # Drag state
 var _is_dragging := false
-var _drag_start_mouse: Vector2
+var _drag_start_position: Vector2
 var _drag_start_camera: Vector2
 
 
@@ -73,17 +73,24 @@ func _get_input_direction() -> Vector2:
 	if Input.is_action_pressed("ui_down"):
 		dir.y += 1
 
-	# WASD keys (physical for consistent layout)
-	if Input.is_physical_key_pressed(KEY_A):
+	# Configurable pan keys (physical for consistent layout)
+	if _is_any_key_pressed(GameConstants.CAMERA_PAN_LEFT_KEYS):
 		dir.x -= 1
-	if Input.is_physical_key_pressed(KEY_D):
+	if _is_any_key_pressed(GameConstants.CAMERA_PAN_RIGHT_KEYS):
 		dir.x += 1
-	if Input.is_physical_key_pressed(KEY_W):
+	if _is_any_key_pressed(GameConstants.CAMERA_PAN_UP_KEYS):
 		dir.y -= 1
-	if Input.is_physical_key_pressed(KEY_S):
+	if _is_any_key_pressed(GameConstants.CAMERA_PAN_DOWN_KEYS):
 		dir.y += 1
 
 	return dir
+
+
+func _is_any_key_pressed(keys: Array[Key]) -> bool:
+	for key in keys:
+		if Input.is_physical_key_pressed(key):
+			return true
+	return false
 
 
 func _handle_drag(event: InputEvent) -> void:
@@ -115,14 +122,14 @@ func _is_drag_button(button_index: MouseButton) -> bool:
 func _set_dragging(pressed: bool, event_position: Vector2) -> void:
 	if pressed:
 		_is_dragging = true
-		_drag_start_mouse = event_position
+		_drag_start_position = event_position
 		_drag_start_camera = position
 	else:
 		_is_dragging = false
 
 
 func _apply_drag(current_position: Vector2) -> void:
-	var drag_delta := _drag_start_mouse - current_position
+	var drag_delta := _drag_start_position - current_position
 	position = _drag_start_camera + drag_delta
 	_clamp_position()
 
