@@ -14,3 +14,6 @@ enum BuildingType {CORRUPTION_NODE, SPAWNING_PIT, PORTAL}
 enum ThreatLevel {NONE, POLICE, MILITARY, HEAVY}
 enum TileType {FLOOR, WALL, PROP, EMPTY}
 enum WorldType {CORRUPTED, HUMAN}
+
+# Human World entities
+enum HumanType {CIVILIAN, ANIMAL}

@@ -41,6 +41,11 @@ GameManager    → Game state, win/lose conditions
   const Data := preload("res://scripts/entities/dark_lord/DarkLordData.gd")
   var speed := Data.WANDER_SPEED
   ```
+- Human entity data - Civilians and animals:
+  ```gdscript
+  const Data := preload("res://scripts/entities/humans/CivilianData.gd")
+  _hp = Data.HP
+  ```
 - `UITheme` - UI colors and styling constants:
   ```gdscript
   const UI := preload("res://scripts/ui/UITheme.gd")
@@ -60,13 +65,16 @@ GameManager    → Game state, win/lose conditions
 
 ## Key Design Principles
 
-1. **No hardcoded values** - Shared values in `GameConstants`, entity-specific in `EntityData.gd`, UI in `UITheme.gd`
-2. **Tile data separation** - Change `TileData` to swap tilesets
-3. **Entity data separation** - Each entity type has its own `Data.gd` for configurable values
-4. **UI theme separation** - All UI colors/styles in `UITheme.gd`, applied programmatically
-5. **Enum-based types** - Use `Enums.*` for type safety
-6. **Signal decoupling** - Systems communicate via EventBus
-7. **Reset pattern** - `GameManager.reset_game()` resets all systems
+1. **No hardcoded values** - Balance values in `GameConstants`, entity-specific config in `EntityData.gd`, UI in `UITheme.gd`
+2. **Data vs GameConstants separation**:
+   - **GameConstants**: Balance values (HP, damage, rewards), shared config (tile size, directions)
+   - **Data files**: Entity-specific config (collision, sprite scale, movement speed)
+3. **Tile data separation** - Change `TileData` to swap tilesets
+4. **Entity data separation** - Each entity type has its own `Data.gd` for non-balance values
+5. **UI theme separation** - All UI colors/styles in `UITheme.gd`, applied programmatically
+6. **Enum-based types** - Use `Enums.*` for type safety
+7. **Signal decoupling** - Systems communicate via EventBus
+8. **Reset pattern** - `GameManager.reset_game()` resets all systems
 
 ## Directory Structure
 
@@ -76,18 +84,20 @@ scripts/
   systems/      # Autoloads (GameManager, Essence, HivePool, EventBus, WorldManager)
   world/        # World.gd, CameraController.gd
   entities/     # Entity scripts organized by entity type
-	dark_lord/  # DarkLordData.gd, DarkLordController.gd
-	buildings/  # PortalData.gd, PortalController.gd
+    dark_lord/  # DarkLordData.gd, DarkLordController.gd
+    buildings/  # PortalData.gd, PortalController.gd
+    humans/     # CivilianData.gd, CivilianController.gd, AnimalData.gd, AnimalController.gd
   ui/           # UI controller scripts
-	HUDController.gd
-	UITheme.gd  # UI colors and styling constants
+    HUDController.gd
+    UITheme.gd  # UI colors and styling constants
   utils/        # Utility scripts (preload pattern)
-	fog_utils.gd  # Fog of war visibility calculations
+    fog_utils.gd  # Fog of war visibility calculations
 scenes/
   world/        # main.tscn
   entities/     # Entity scenes organized by entity type
-	dark_lord/  # dark_lord.tscn
-	buildings/  # portal.tscn
+    dark_lord/  # dark_lord.tscn
+    buildings/  # portal.tscn
+    humans/     # civilian.tscn, animal.tscn
   ui/           # hud.tscn
 resources/      # Tilesets, Kenney assets
 doc/            # Design docs
@@ -123,6 +133,22 @@ Edit `scripts/data/game_constants.gd`:
 # Essence & Economy
 STARTING_ESSENCE, DARK_LORD_UPKEEP
 ESSENCE_PER_TILE, ESSENCE_PER_KILL
+ESSENCE_PER_CIVILIAN, ESSENCE_PER_ANIMAL
+
+# Human World Entities
+CIVILIAN_COUNT, ANIMAL_COUNT
+ENTITY_SPAWN_ATTEMPTS
+
+# Combat - Dark Lord
+DARK_LORD_HP, DARK_LORD_DAMAGE
+DARK_LORD_ATTACK_RANGE, DARK_LORD_ATTACK_COOLDOWN
+
+# Combat - Entities
+CIVILIAN_HP, ANIMAL_HP
+
+# Entity Groups (use for add_to_group/is_in_group)
+GROUP_DARK_LORD, GROUP_CIVILIANS, GROUP_ANIMALS
+GROUP_KILLABLE, GROUP_MINIONS
 
 # Win/Lose
 WIN_THRESHOLD, THREAT_THRESHOLDS
@@ -164,8 +190,9 @@ const CHAR_SKELETON := Vector2i(3, 7)
 
 ## Code Standards
 
-- Use `GameConstants.*` for shared numeric values (map size, tile size, etc.)
-- Use `Data.*` for entity-specific values (preload EntityData.gd at top of script)
+- Use `GameConstants.*` for balance values (HP, damage, rewards, spawn counts)
+- Use `GameConstants.GROUP_*` for entity groups (never hardcode group strings)
+- Use `Data.*` for entity-specific config (collision, movement, visuals)
 - Use `Tiles.*` for tile coordinates (preload TileData at top of script)
 - Use `Enums.*` for type safety
 - Use `EventBus.*` for system communication
@@ -173,3 +200,4 @@ const CHAR_SKELETON := Vector2i(3, 7)
 - Call `GameManager.reset_game()` to reset all systems
 - Set configurable scene values (scale, collision shapes) from Data in `_ready()`
 - For entity visibility (fog), implement `get_visible_tiles()` using `FogUtils.get_tiles_in_sight_range()`
+- For killable entities: init HP from `GameConstants.*_HP`, implement `take_damage()`, add to `GROUP_KILLABLE`

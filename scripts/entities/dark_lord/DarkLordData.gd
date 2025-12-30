@@ -1,6 +1,8 @@
 extends RefCounted
-## Dark Lord configuration - all Dark Lord specific values
+## Dark Lord configuration - entity-specific values (non-balance)
 ## Use preload pattern: const Data := preload("res://scripts/entities/dark_lord/DarkLordData.gd")
+##
+## Combat balance values (HP, damage, attack range/cooldown) are in GameConstants
 
 const COLLISION_RADIUS := 10.0
 const SPRITE_SIZE_RATIO := 1.2  # Sprite visual size relative to collision diameter (1.0 = match collision)

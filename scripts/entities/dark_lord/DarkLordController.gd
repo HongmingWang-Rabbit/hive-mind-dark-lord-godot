@@ -10,16 +10,23 @@ const FogUtils := preload("res://scripts/utils/fog_utils.gd")
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 @onready var wander_timer: Timer = $WanderTimer
+@onready var attack_timer: Timer = $AttackTimer
+@onready var attack_range: Area2D = $AttackRange
 
 # Current movement target
 var _target_position: Vector2
 var _is_moving := false
 
+# Combat
+var _current_target: Node2D = null
+var _targets_in_range: Array[Node2D] = []
+
 
 func _ready() -> void:
-	add_to_group("dark_lord")
+	add_to_group(GameConstants.GROUP_DARK_LORD)
 	_setup_collision_shape()
 	_setup_sprite_scale()
+	_setup_combat()
 	_start_wander_timer()
 
 
@@ -115,5 +122,49 @@ func get_visible_tiles() -> Array[Vector2i]:
 	## Returns array of tiles visible from Dark Lord's position
 	var center := Vector2i(global_position / GameConstants.TILE_SIZE)
 	return FogUtils.get_tiles_in_sight_range(center, Data.SIGHT_RANGE)
+
+#endregion
+
+#region Combat
+
+func _setup_combat() -> void:
+	attack_timer.wait_time = GameConstants.DARK_LORD_ATTACK_COOLDOWN
+	attack_timer.one_shot = true
+	attack_range.body_entered.connect(_on_attack_range_body_entered)
+	attack_range.body_exited.connect(_on_attack_range_body_exited)
+
+
+func _on_attack_range_body_entered(body: Node2D) -> void:
+	if body.is_in_group(GameConstants.GROUP_KILLABLE):
+		_targets_in_range.append(body)
+		if _current_target == null:
+			_current_target = body
+			_try_attack()
+
+
+func _on_attack_range_body_exited(body: Node2D) -> void:
+	_targets_in_range.erase(body)
+	if body == _current_target:
+		_current_target = _targets_in_range[0] if _targets_in_range.size() > 0 else null
+
+
+func _try_attack() -> void:
+	if _current_target == null or not attack_timer.is_stopped():
+		return
+	if not is_instance_valid(_current_target):
+		_current_target = null
+		return
+
+	# Deal damage to target
+	if _current_target.has_method("take_damage"):
+		_current_target.take_damage(GameConstants.DARK_LORD_DAMAGE)
+	attack_timer.start()
+
+
+func _on_attack_timer_timeout() -> void:
+	# Attack again if target still in range
+	if _current_target != null and not is_instance_valid(_current_target):
+		_current_target = _targets_in_range[0] if _targets_in_range.size() > 0 else null
+	_try_attack()
 
 #endregion

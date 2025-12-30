@@ -9,6 +9,7 @@ signal corruption_changed(new_percent: float)
 signal human_killed(position: Vector2)
 signal human_possessed(position: Vector2)
 signal enemy_spotted(position: Vector2, threat_type: Enums.ThreatLevel)
+signal entity_killed(position: Vector2, entity_type: Enums.HumanType)
 
 # Building events
 signal building_placed(building_type: Enums.BuildingType, position: Vector2)

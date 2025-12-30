@@ -11,6 +11,44 @@ const ESSENCE_PER_TILE := 1
 const ESSENCE_PER_KILL := 10
 const ESSENCE_PER_POSSESS := 25
 
+# Entity rewards
+const ESSENCE_PER_CIVILIAN := 10
+const ESSENCE_PER_ANIMAL := 5
+
+#endregion
+
+#region Human World Entities
+
+const CIVILIAN_COUNT := 10
+const ANIMAL_COUNT := 8
+const ENTITY_SPAWN_ATTEMPTS := 50  # Max attempts to find valid spawn position
+
+#endregion
+
+#region Entity Groups
+
+const GROUP_DARK_LORD := "dark_lord"
+const GROUP_CIVILIANS := "civilians"
+const GROUP_ANIMALS := "animals"
+const GROUP_KILLABLE := "killable"
+const GROUP_MINIONS := "minions"
+
+#endregion
+
+#region Combat - Dark Lord
+
+const DARK_LORD_HP := 100
+const DARK_LORD_DAMAGE := 10
+const DARK_LORD_ATTACK_RANGE := 16.0  # Pixels (1 tile = 16)
+const DARK_LORD_ATTACK_COOLDOWN := 0.5  # Seconds between attacks
+
+#endregion
+
+#region Combat - Entities
+
+const CIVILIAN_HP := 10
+const ANIMAL_HP := 10
+
 #endregion
 
 #region Units

@@ -12,6 +12,8 @@ extends Node2D
 const Tiles := preload("res://scripts/data/tile_data.gd")
 const FogUtils := preload("res://scripts/utils/fog_utils.gd")
 const DarkLordScene := preload("res://scenes/entities/dark_lord/dark_lord.tscn")
+const CivilianScene := preload("res://scenes/entities/humans/civilian.tscn")
+const AnimalScene := preload("res://scenes/entities/humans/animal.tscn")
 
 # World containers
 @onready var human_world: Node2D = $HumanWorld
@@ -75,6 +77,7 @@ func _ready() -> void:
 	_setup_world_visuals()
 	_setup_fog()
 	_spawn_dark_lord()
+	_spawn_human_world_entities()
 	_init_camera()
 	_show_world(WorldManager.active_world)
 
@@ -177,6 +180,51 @@ func _spawn_dark_lord() -> void:
 	_dark_lord.global_position = Vector2(_initial_corruption_tile) * tile_size + Vector2(tile_size, tile_size) / 2.0
 	# Dark Lord starts in Corrupted World
 	corrupted_entities.add_child(_dark_lord)
+
+
+func _spawn_human_world_entities() -> void:
+	## Spawn civilians and animals in Human World
+	_spawn_civilians()
+	_spawn_animals()
+
+
+func _spawn_civilians() -> void:
+	for i in GameConstants.CIVILIAN_COUNT:
+		var civilian := CivilianScene.instantiate()
+		var spawn_pos := _get_random_floor_tile()
+		_place_entity_at_tile(civilian, spawn_pos, Enums.WorldType.HUMAN)
+
+
+func _spawn_animals() -> void:
+	for i in GameConstants.ANIMAL_COUNT:
+		var animal := AnimalScene.instantiate()
+		var spawn_pos := _get_random_floor_tile()
+		_place_entity_at_tile(animal, spawn_pos, Enums.WorldType.HUMAN)
+
+
+func _place_entity_at_tile(entity: Node2D, tile_pos: Vector2i, world: Enums.WorldType) -> void:
+	var container := get_entities_container(world)
+	container.add_child(entity)
+	var tile_size := GameConstants.TILE_SIZE
+	entity.global_position = Vector2(tile_pos) * tile_size + Vector2(tile_size, tile_size) / 2.0
+
+
+func _get_random_floor_tile() -> Vector2i:
+	## Pick a random unoccupied floor tile
+	for i in GameConstants.ENTITY_SPAWN_ATTEMPTS:
+		var x := randi_range(GameConstants.MAP_EDGE_MARGIN, map_width - GameConstants.MAP_EDGE_MARGIN - 1)
+		var y := randi_range(GameConstants.MAP_EDGE_MARGIN, map_height - GameConstants.MAP_EDGE_MARGIN - 1)
+		var pos := Vector2i(x, y)
+		if _is_floor_tile(pos):
+			return pos
+	return Vector2i(map_width / 2, map_height / 2)
+
+
+func _is_floor_tile(pos: Vector2i) -> bool:
+	## Check if position is a valid floor tile (not occupied by structure)
+	if occupied_tiles.has(pos):
+		return false
+	return human_floor_map.get_cell_source_id(pos) != -1
 
 
 func _count_existing_tiles() -> void:

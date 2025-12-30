@@ -1,10 +1,13 @@
-[gd_scene load_steps=4 format=4 uid="uid://dark_lord_scene"]
+[gd_scene load_steps=5 format=4 uid="uid://dark_lord_scene"]
 
 [ext_resource type="Script" path="res://scripts/entities/dark_lord/DarkLordController.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/sprites/hive_mind_dark_lord.png" id="2_sprite"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_collision"]
 radius = 6.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_attack_range"]
+radius = 16.0
 
 [node name="DarkLord" type="CharacterBody2D"]
 script = ExtResource("1_script")
@@ -19,4 +22,13 @@ shape = SubResource("CircleShape2D_collision")
 [node name="WanderTimer" type="Timer" parent="."]
 one_shot = true
 
+[node name="AttackTimer" type="Timer" parent="."]
+one_shot = true
+
+[node name="AttackRange" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackRange"]
+shape = SubResource("CircleShape2D_attack_range")
+
 [connection signal="timeout" from="WanderTimer" to="." method="_on_wander_timer_timeout"]
+[connection signal="timeout" from="AttackTimer" to="." method="_on_attack_timer_timeout"]

@@ -20,6 +20,29 @@ GameManager (uses all above, including WorldManager)
 
 ## Data Scripts
 
+### Data vs GameConstants Separation
+
+**GameConstants** (autoload) contains:
+- Balance values that affect gameplay (HP, damage, essence rewards, spawn counts)
+- Shared configuration (tile size, map dimensions, directions)
+- Values you'd tweak when balancing the game
+
+**Data files** (preload) contain:
+- Entity-specific configuration (collision radius, sprite scale, movement speed)
+- Values specific to how an entity looks/moves, not its combat stats
+- Non-balance values that define entity behavior
+
+**Example:**
+```gdscript
+# GameConstants - balance values
+CIVILIAN_HP := 10          # How much damage to kill
+ESSENCE_PER_CIVILIAN := 10 # Reward for killing
+
+# CivilianData - entity-specific config
+COLLISION_RADIUS := 5.0    # How big the hitbox is
+WANDER_SPEED := 25.0       # How fast it moves
+```
+
 ### TileData (preload, not autoload)
 Tile atlas coordinates for the current tileset. Uses preload pattern for reliable
 constant access at parse time. Change this file to swap tilesets.
@@ -137,6 +160,30 @@ DARK_LORD_UPKEEP        # Passive drain rate
 ESSENCE_PER_TILE        # Income per corrupted tile
 ESSENCE_PER_KILL        # Bonus for kills
 ESSENCE_PER_POSSESS     # Bonus for possession
+ESSENCE_PER_CIVILIAN    # +10 - reward for killing civilians
+ESSENCE_PER_ANIMAL      # +5 - reward for killing animals
+
+#region Human World Entities
+CIVILIAN_COUNT          # Number of civilians to spawn (10)
+ANIMAL_COUNT            # Number of animals to spawn (8)
+ENTITY_SPAWN_ATTEMPTS   # Max attempts to find valid spawn position (50)
+
+#region Entity Groups (use for add_to_group/is_in_group)
+GROUP_DARK_LORD         # "dark_lord"
+GROUP_CIVILIANS         # "civilians"
+GROUP_ANIMALS           # "animals"
+GROUP_KILLABLE          # "killable" - entities Dark Lord can attack
+GROUP_MINIONS           # "minions"
+
+#region Combat - Dark Lord
+DARK_LORD_HP            # 100 - Dark Lord max health
+DARK_LORD_DAMAGE        # 10 - damage per attack
+DARK_LORD_ATTACK_RANGE  # 16.0 pixels (1 tile)
+DARK_LORD_ATTACK_COOLDOWN # 0.5s between attacks
+
+#region Combat - Entities
+CIVILIAN_HP             # 10 - keep synced with CivilianData.HP
+ANIMAL_HP               # 10 - keep synced with AnimalData.HP
 
 #region Units
 MINION_STATS[MinionType] = {cost, upkeep, hp, damage, speed}
@@ -147,14 +194,6 @@ BUILDING_STATS[BuildingType] = {cost, ...}  # Portal uses PortalData.gd instead
 #region Win/Lose
 WIN_THRESHOLD           # Corruption % to win (1.0 = 100% Human World)
 THREAT_THRESHOLDS       # Array of corruption % triggers for each threat level
-
-#region Resource Rates (per world)
-DARK_WORLD_PASSIVE_INCOME   # Limited income in Dark World
-HUMAN_WORLD_TILE_INCOME     # Income per corrupted tile in Human World
-ESSENCE_PER_CIVILIAN        # +10
-ESSENCE_PER_ANIMAL          # +5
-ESSENCE_PER_MILITARY_KILL   # +15
-EVOLUTION_PER_SPECIAL       # Points for consuming special humans
 
 #region Map Generation
 MAP_WIDTH, MAP_HEIGHT   # Default map dimensions
@@ -486,16 +525,16 @@ scenes/entities/dark_lord/
 ```gdscript
 const Data := preload("res://scripts/entities/dark_lord/DarkLordData.gd")
 
-# DarkLordData.gd constants:
+# DarkLordData.gd constants (entity-specific, non-balance):
 COLLISION_RADIUS    # float - physics collision size (also drives sprite scale)
 SPRITE_SIZE_RATIO   # float - sprite size relative to collision (1.0 = match)
 WANDER_SPEED        # float - movement speed
 WANDER_INTERVAL_MIN # float - min wait between moves
 WANDER_INTERVAL_MAX # float - max wait between moves
 SIGHT_RANGE         # int - tiles visible around Dark Lord (fog of war)
-MAX_HP              # int - Dark Lord health (strong monster, can fight)
-DAMAGE              # int - attack damage
-ATTACK_COOLDOWN     # float - seconds between attacks
+
+# Combat balance values are in GameConstants:
+# DARK_LORD_HP, DARK_LORD_DAMAGE, DARK_LORD_ATTACK_RANGE, DARK_LORD_ATTACK_COOLDOWN
 ```
 
 ### Current Behavior
@@ -503,20 +542,103 @@ ATTACK_COOLDOWN     # float - seconds between attacks
 - Moves one tile at a time
 - Waits random interval between moves
 - Reveals fog in sight range when moving (via `get_visible_tiles()`)
+- **Auto-attacks** killable entities (civilians, animals) in range
 
-### Combat (TODO)
-- Has HP - can take damage and die (Game Over)
-- Strong monster - can fight police/military directly
-- Should avoid being overwhelmed by large groups
-- Death triggers `game_lost("dark_lord_died")`
+### Combat System
+- **AttackRange Area2D** detects entities in `GROUP_KILLABLE` group
+- Auto-attacks target with `GameConstants.DARK_LORD_DAMAGE`
+- Attack cooldown prevents spam (`Data.ATTACK_COOLDOWN`)
+- Calls `take_damage()` on target entities
+- When target HP depletes: entity dies, Dark Lord gains essence
 
 ### Scene Structure (dark_lord.tscn)
 ```
 DarkLord [CharacterBody2D] (DarkLordController.gd)
 ├── Sprite2D - Visual representation (scale derived from COLLISION_RADIUS)
 ├── CollisionShape2D - Physics collision (radius from Data.COLLISION_RADIUS)
+├── WanderTimer - Controls movement timing
+├── AttackTimer - Cooldown between attacks (one_shot)
+└── AttackRange [Area2D] - Detects killable entities
+    └── CollisionShape2D - Attack detection radius
+```
+
+## Human World Entities
+
+Civilians and animals spawn in Human World, wander randomly, and provide essence when killed by the Dark Lord.
+
+### File Organization
+```
+scripts/entities/humans/
+├── CivilianData.gd       # Civilian constants (preload pattern)
+├── CivilianController.gd # Civilian behavior
+├── AnimalData.gd         # Animal constants (preload pattern)
+└── AnimalController.gd   # Animal behavior
+
+scenes/entities/humans/
+├── civilian.tscn         # Civilian scene
+└── animal.tscn           # Animal scene
+```
+
+### Entity Data Pattern
+```gdscript
+# Data files use preload pattern and contain entity-specific (non-balance) constants:
+const Data := preload("res://scripts/entities/humans/CivilianData.gd")
+
+# Data constants (entity-specific, non-balance):
+COLLISION_RADIUS    # float - physics collision size
+SPRITE_SIZE_RATIO   # float - sprite size relative to collision
+WANDER_SPEED        # float - movement speed (civilians: 25, animals: 15)
+WANDER_INTERVAL_MIN # float - min wait between moves
+WANDER_INTERVAL_MAX # float - max wait between moves
+
+# Balance values are in GameConstants:
+# CIVILIAN_HP, ANIMAL_HP, ESSENCE_PER_CIVILIAN, ESSENCE_PER_ANIMAL
+```
+
+### Behavior
+- Wander randomly in 8 directions (same pattern as Dark Lord)
+- Move one tile at a time
+- Wait random interval between moves
+- Animals move slower than civilians
+
+### Combat Interface
+Entities implement `take_damage(amount: int)`. HP is initialized from GameConstants:
+```gdscript
+func _ready() -> void:
+    _hp = GameConstants.CIVILIAN_HP  # or ANIMAL_HP
+    add_to_group(GameConstants.GROUP_KILLABLE)
+
+func take_damage(amount: int) -> void:
+    _hp -= amount
+    if _hp <= 0:
+        _die()
+
+func _die() -> void:
+    EventBus.entity_killed.emit(global_position, Enums.HumanType.CIVILIAN)
+    Essence.modify(GameConstants.ESSENCE_PER_CIVILIAN)
+    queue_free()
+```
+
+### Groups
+Entities add themselves to groups for detection:
+```gdscript
+add_to_group(GameConstants.GROUP_CIVILIANS)  # or GROUP_ANIMALS
+add_to_group(GameConstants.GROUP_KILLABLE)   # Dark Lord targets this group
+```
+
+### Scene Structure
+```
+Civilian/Animal [CharacterBody2D]
+├── Sprite2D - Visual representation
+├── CollisionShape2D - Physics collision
 └── WanderTimer - Controls movement timing
 ```
+
+### Spawning
+World.gd spawns entities in Human World during `_ready()`:
+- `_spawn_civilians()` - spawns `GameConstants.CIVILIAN_COUNT` civilians
+- `_spawn_animals()` - spawns `GameConstants.ANIMAL_COUNT` animals
+- Entities placed at random floor tiles (avoids structures)
 
 ## Portal Entity
 
