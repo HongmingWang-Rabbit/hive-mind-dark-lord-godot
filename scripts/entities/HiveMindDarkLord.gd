@@ -11,7 +11,6 @@ var _is_moving := false
 
 
 func _ready() -> void:
-	_pick_new_wander_target()
 	_start_wander_timer()
 
 
@@ -42,7 +41,8 @@ func _pick_new_wander_target() -> void:
 	var tile_size := GameConstants.TILE_SIZE
 	var directions := GameConstants.ALL_DIRS
 
-	var random_dir: Vector2i = directions[randi() % directions.size()]
+	var random_index := randi_range(0, directions.size() - 1)
+	var random_dir: Vector2i = directions[random_index]
 	_target_position = global_position + Vector2(random_dir) * tile_size
 
 

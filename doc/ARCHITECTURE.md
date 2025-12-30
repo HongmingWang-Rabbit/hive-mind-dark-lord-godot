@@ -233,6 +233,7 @@ Player's avatar entity. Spawned at initial corruption point.
 ```
 DarkLord [CharacterBody2D]
 ├── Sprite2D - Visual representation
+├── CollisionShape2D - Physics collision (CircleShape2D, radius 6)
 └── WanderTimer - Controls movement timing
 ```
 
