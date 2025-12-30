@@ -50,7 +50,7 @@ scripts/
   data/         # Enums, GameConstants, TileData
   systems/      # Autoloads (GameManager, Essence, HivePool, EventBus)
   world/        # World.gd, CameraController.gd
-  entities/     # Entity scripts (minions, humans, buildings)
+  entities/     # Entity scripts + data (DarkLordData.gd, HiveMindDarkLord.gd)
   ui/           # UI controller scripts
 scenes/
   world/        # main.tscn
@@ -95,7 +95,6 @@ TILEMAP_SOURCE_ID
 VIEWPORT_WIDTH, VIEWPORT_HEIGHT, CAMERA_CENTER
 TILE_SIZE, CAMERA_PAN_SPEED, CAMERA_EDGE_PADDING
 CAMERA_DRAG_BUTTONS, CAMERA_PAN_*_KEYS
-DARK_LORD_WANDER_SPEED, DARK_LORD_WANDER_INTERVAL_*
 CORRUPTION_COLOR
 ```
 

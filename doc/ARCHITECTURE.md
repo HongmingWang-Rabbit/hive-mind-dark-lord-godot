@@ -132,11 +132,6 @@ CAMERA_PAN_RIGHT_KEYS   # [Key] - keys for panning right (default: [KEY_D])
 CAMERA_PAN_UP_KEYS      # [Key] - keys for panning up (default: [KEY_W])
 CAMERA_PAN_DOWN_KEYS    # [Key] - keys for panning down (default: [KEY_S])
 
-#region Dark Lord
-DARK_LORD_WANDER_SPEED          # Movement speed (30.0)
-DARK_LORD_WANDER_INTERVAL_MIN   # Min time between moves (1.0s)
-DARK_LORD_WANDER_INTERVAL_MAX   # Max time between moves (3.0s)
-
 #region Corruption Visual
 CORRUPTION_COLOR        # Color for corruption overlay
 
@@ -223,6 +218,17 @@ spread_corruption()      # Expand to random adjacent tile
 ## HiveMindDarkLord.gd
 
 Player's avatar entity. Spawned at initial corruption point.
+
+### Data Script (preload pattern)
+```gdscript
+const Data := preload("res://scripts/entities/DarkLordData.gd")
+
+# DarkLordData.gd constants:
+SPRITE_SCALE        # Vector2(0.25, 0.25)
+WANDER_SPEED        # 30.0
+WANDER_INTERVAL_MIN # 1.0s
+WANDER_INTERVAL_MAX # 3.0s
+```
 
 ### Current Behavior
 - Wanders randomly in 8 directions

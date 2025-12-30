@@ -24,15 +24,6 @@ const MINION_STATS := {
 
 #endregion
 
-#region Dark Lord
-
-const DARK_LORD_SPRITE_SCALE := Vector2(0.25, 0.25)
-const DARK_LORD_WANDER_SPEED := 30.0
-const DARK_LORD_WANDER_INTERVAL_MIN := 1.0
-const DARK_LORD_WANDER_INTERVAL_MAX := 3.0
-
-#endregion
-
 #region Buildings
 
 const BUILDING_STATS := {

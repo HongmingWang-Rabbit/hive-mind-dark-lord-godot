@@ -2,6 +2,8 @@ extends CharacterBody2D
 ## Hive Mind Dark Lord - the player's avatar that wanders corrupted territory
 ## Spawns at initial corruption point. More behaviors to be added later.
 
+const Data := preload("res://scripts/entities/DarkLordData.gd")
+
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var wander_timer: Timer = $WanderTimer
 
@@ -11,7 +13,7 @@ var _is_moving := false
 
 
 func _ready() -> void:
-	sprite.scale = GameConstants.DARK_LORD_SPRITE_SCALE
+	sprite.scale = Data.SPRITE_SCALE
 	_start_wander_timer()
 
 
@@ -22,10 +24,10 @@ func _physics_process(_delta: float) -> void:
 
 func _move_toward_target() -> void:
 	var direction := (_target_position - global_position).normalized()
-	velocity = direction * GameConstants.DARK_LORD_WANDER_SPEED
+	velocity = direction * Data.WANDER_SPEED
 
 	# Check if reached target
-	if global_position.distance_to(_target_position) < GameConstants.DARK_LORD_WANDER_SPEED * get_physics_process_delta_time():
+	if global_position.distance_to(_target_position) < Data.WANDER_SPEED * get_physics_process_delta_time():
 		global_position = _target_position
 		velocity = Vector2.ZERO
 		_is_moving = false
@@ -48,10 +50,7 @@ func _pick_new_wander_target() -> void:
 
 
 func _start_wander_timer() -> void:
-	var interval := randf_range(
-		GameConstants.DARK_LORD_WANDER_INTERVAL_MIN,
-		GameConstants.DARK_LORD_WANDER_INTERVAL_MAX
-	)
+	var interval := randf_range(Data.WANDER_INTERVAL_MIN, Data.WANDER_INTERVAL_MAX)
 	wander_timer.start(interval)
 
 
