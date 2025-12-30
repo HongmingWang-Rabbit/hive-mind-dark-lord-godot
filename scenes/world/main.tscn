@@ -1,26 +1,43 @@
-[gd_scene load_steps=5 format=4 uid="uid://bxk2etrdneiem"]
+[gd_scene load_steps=5 format=3 uid="uid://bxk2etrdneiem"]
 
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="1_hud"]
 [ext_resource type="TileSet" uid="uid://claey8koq7by0" path="res://resources/dungeon_tileset.tres" id="2_tileset"]
 [ext_resource type="Script" uid="uid://dow3lho3mi3jn" path="res://scripts/world/World.gd" id="3_world"]
-[ext_resource type="Script" path="res://scripts/world/CameraController.gd" id="4_camera"]
+[ext_resource type="Script" uid="uid://dqb0xbvko3ib4" path="res://scripts/world/CameraController.gd" id="4_camera"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("3_world")
 
-[node name="FloorMap" type="TileMapLayer" parent="."]
+[node name="HumanWorld" type="Node2D" parent="."]
+
+[node name="FloorMap" type="TileMapLayer" parent="HumanWorld"]
 tile_set = ExtResource("2_tileset")
 
-[node name="StructureMap" type="TileMapLayer" parent="."]
+[node name="StructureMap" type="TileMapLayer" parent="HumanWorld"]
 tile_set = ExtResource("2_tileset")
 
-[node name="CorruptionMap" type="TileMapLayer" parent="."]
-modulate = Color(0.6, 0.2, 0.8, 0.7)
+[node name="CorruptionMap" type="TileMapLayer" parent="HumanWorld"]
 tile_set = ExtResource("2_tileset")
 
-[node name="Buildings" type="Node2D" parent="."]
+[node name="Entities" type="Node2D" parent="HumanWorld"]
 
-[node name="Entities" type="Node2D" parent="."]
+[node name="CorruptedWorld" type="Node2D" parent="."]
+
+[node name="FloorMap" type="TileMapLayer" parent="CorruptedWorld"]
+tile_set = ExtResource("2_tileset")
+
+[node name="StructureMap" type="TileMapLayer" parent="CorruptedWorld"]
+tile_set = ExtResource("2_tileset")
+
+[node name="CorruptionMap" type="TileMapLayer" parent="CorruptedWorld"]
+tile_set = ExtResource("2_tileset")
+
+[node name="Entities" type="Node2D" parent="CorruptedWorld"]
+
+[node name="AtmosphereParticles" type="GPUParticles2D" parent="CorruptedWorld"]
+emitting = false
+amount = 50
+lifetime = 3.0
 
 [node name="UI" type="CanvasLayer" parent="."]
 

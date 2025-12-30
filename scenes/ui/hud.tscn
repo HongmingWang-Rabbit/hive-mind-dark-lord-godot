@@ -1,4 +1,6 @@
-[gd_scene format=3]
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://hud_controller" path="res://scripts/ui/HUDController.gd" id="1_script"]
 
 [node name="HUD" type="Control"]
 layout_mode = 3
@@ -7,11 +9,15 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("1_script")
 
 [node name="TopBar" type="HBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = -4.0
 offset_bottom = 24.0
 grow_horizontal = 2
 
@@ -34,6 +40,14 @@ size_flags_horizontal = 3
 [node name="ThreatLabel" type="Label" parent="TopBar"]
 layout_mode = 2
 text = "Threat: None"
+
+[node name="Spacer3" type="Control" parent="TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="WorldButton" type="Button" parent="TopBar"]
+layout_mode = 2
+text = "View: Corrupted"
 
 [node name="SidePanel" type="VBoxContainer" parent="."]
 layout_mode = 1

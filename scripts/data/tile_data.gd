@@ -48,6 +48,9 @@ const CHAR_WIZARD := Vector2i(0, 7)
 # Special
 const CHAR_DARK_LORD := Vector2i(2, 9)
 
+# Buildings
+const PORTAL := Vector2i(3, 6)  # Using door tile as portal visual
+
 
 ## Helper to get a random floor tile
 static func get_random_floor() -> Vector2i:

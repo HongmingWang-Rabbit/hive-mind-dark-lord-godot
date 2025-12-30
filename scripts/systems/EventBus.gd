@@ -22,3 +22,9 @@ signal retreat_ordered()
 signal threat_level_changed(new_level: Enums.ThreatLevel)
 signal game_won()
 signal game_lost()
+
+# World dimension events
+signal world_switched(new_world: Enums.WorldType)
+signal portal_placed(tile_pos: Vector2i, world: Enums.WorldType)
+signal portal_activated(tile_pos: Vector2i)
+signal corruption_cleared(tile_pos: Vector2i)

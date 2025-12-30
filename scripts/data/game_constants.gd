@@ -29,7 +29,7 @@ const MINION_STATS := {
 const BUILDING_STATS := {
 	Enums.BuildingType.CORRUPTION_NODE: {cost = 50, essence_bonus = 2},
 	Enums.BuildingType.SPAWNING_PIT: {cost = 100, capacity = 5},
-	Enums.BuildingType.PORTAL: {cost = 200, hp = 500},
+	# Portal stats in PortalData.gd (entity-specific data pattern)
 }
 
 #endregion
@@ -92,6 +92,13 @@ const CAMERA_PAN_DOWN_KEYS: Array[Key] = [KEY_S]
 
 #endregion
 
+#region Input Keys (Debug/Gameplay)
+
+const KEY_PLACE_PORTAL: Key = KEY_P
+const KEY_SWITCH_WORLD: Key = KEY_TAB  # Debug only
+
+#endregion
+
 #region Corruption Visual
 
 const CORRUPTION_COLOR := Color(0.6, 0.2, 0.8, 0.7)
@@ -111,5 +118,30 @@ const ALL_DIRS: Array[Vector2i] = [
 	Vector2i(1, 1), Vector2i(-1, -1),
 	Vector2i(1, -1), Vector2i(-1, 1)
 ]
+
+#endregion
+
+#region Dual World
+
+# World visual theming
+const HUMAN_WORLD_TINT := Color(1.0, 1.0, 1.0, 1.0)
+const CORRUPTED_WORLD_TINT := Color(0.4, 0.2, 0.5, 1.0)
+
+# Corrupted world atmosphere particles
+const CORRUPTED_PARTICLES_AMOUNT := 50
+const CORRUPTED_PARTICLES_LIFETIME := 3.0
+const CORRUPTED_PARTICLES_COLOR := Color(0.6, 0.2, 0.8, 0.5)
+const CORRUPTED_PARTICLES_DIRECTION := Vector3(0, -1, 0)  # Downward falling
+const CORRUPTED_PARTICLES_SPREAD := 45.0
+const CORRUPTED_PARTICLES_GRAVITY := Vector3(0, 10, 0)
+const CORRUPTED_PARTICLES_VELOCITY_MIN := 5.0
+const CORRUPTED_PARTICLES_VELOCITY_MAX := 15.0
+const CORRUPTED_PARTICLES_SCALE_MIN := 0.3
+const CORRUPTED_PARTICLES_SCALE_MAX := 0.6
+const CORRUPTED_PARTICLES_TEXTURE_SIZE := 8  # Pixel size of particle texture
+
+# Portal configuration
+const PORTAL_CORRUPTION_RADIUS := 5
+const PORTAL_TRAVEL_COOLDOWN := 1.0
 
 #endregion

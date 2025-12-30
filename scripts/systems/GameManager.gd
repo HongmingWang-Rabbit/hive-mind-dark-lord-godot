@@ -27,6 +27,7 @@ func reset_game() -> void:
 	threat_level = Enums.ThreatLevel.NONE
 	Essence.reset()
 	HivePool.reset()
+	WorldManager.reset()
 
 
 func pause_game() -> void:
