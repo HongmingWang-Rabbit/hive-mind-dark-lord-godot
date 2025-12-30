@@ -144,7 +144,8 @@ ALL_DIRS                # [Vector2i] - 8 directions including diagonals
 
 ```
 Main (World.gd)
-├── TerrainMap [TileMapLayer] - Base terrain
+├── FloorMap [TileMapLayer] - Base floor tiles
+├── StructureMap [TileMapLayer] - Buildings, walls, props
 ├── CorruptionMap [TileMapLayer] - Purple overlay
 ├── Buildings [Node2D]
 ├── Entities [Node2D]

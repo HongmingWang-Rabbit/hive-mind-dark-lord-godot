@@ -4,7 +4,8 @@ extends Node2D
 
 const Tiles := preload("res://scripts/data/tile_data.gd")
 
-@onready var terrain_map: TileMapLayer = $TerrainMap
+@onready var floor_map: TileMapLayer = $FloorMap
+@onready var structure_map: TileMapLayer = $StructureMap
 @onready var corruption_map: TileMapLayer = $CorruptionMap
 @onready var camera: Camera2D = $Camera2D  # Expects CameraController.gd attached
 
@@ -59,7 +60,7 @@ func _init_camera() -> void:
 
 
 func _count_existing_tiles() -> void:
-	var used_cells := terrain_map.get_used_cells()
+	var used_cells := floor_map.get_used_cells()
 	total_tiles = used_cells.size()
 
 
@@ -75,7 +76,8 @@ func generate_map() -> void:
 
 
 func _clear_map() -> void:
-	terrain_map.clear()
+	floor_map.clear()
+	structure_map.clear()
 	corruption_map.clear()
 	corrupted_tiles.clear()
 	occupied_tiles.clear()
@@ -86,7 +88,7 @@ func _generate_floor() -> void:
 	for x in range(map_width):
 		for y in range(map_height):
 			var tile := _get_weighted_floor_tile()
-			terrain_map.set_cell(Vector2i(x, y), GameConstants.TILEMAP_SOURCE_ID, tile)
+			floor_map.set_cell(Vector2i(x, y), GameConstants.TILEMAP_SOURCE_ID, tile)
 			total_tiles += 1
 
 
@@ -144,7 +146,7 @@ func _place_building(pos: Vector2i, size: Vector2i) -> void:
 		for y in range(size.y):
 			var tile_pos := pos + Vector2i(x, y)
 			var tile := _get_wall_tile(x, y, size)
-			terrain_map.set_cell(tile_pos, GameConstants.TILEMAP_SOURCE_ID, tile)
+			structure_map.set_cell(tile_pos, GameConstants.TILEMAP_SOURCE_ID, tile)
 			occupied_tiles[tile_pos] = true
 
 
@@ -177,7 +179,7 @@ func _scatter_props() -> void:
 		var pos := Vector2i(randi_range(0, map_width - 1), randi_range(0, map_height - 1))
 
 		if _can_place_prop(pos):
-			terrain_map.set_cell(pos, GameConstants.TILEMAP_SOURCE_ID, Tiles.get_random_prop())
+			structure_map.set_cell(pos, GameConstants.TILEMAP_SOURCE_ID, Tiles.get_random_prop())
 			occupied_tiles[pos] = true
 			placed += 1
 
@@ -226,14 +228,14 @@ func corrupt_tile(tile_pos: Vector2i) -> void:
 	if corrupted_tiles.has(tile_pos):
 		return
 
-	if terrain_map.get_cell_source_id(tile_pos) == -1:
+	if floor_map.get_cell_source_id(tile_pos) == -1:
 		return
 
 	corrupted_tiles[tile_pos] = true
 
-	# Mirror tile to corruption layer (purple tinted via modulate)
-	var terrain_tile := terrain_map.get_cell_atlas_coords(tile_pos)
-	corruption_map.set_cell(tile_pos, GameConstants.TILEMAP_SOURCE_ID, terrain_tile)
+	# Mirror floor tile to corruption layer (purple tinted via modulate)
+	var floor_tile := floor_map.get_cell_atlas_coords(tile_pos)
+	corruption_map.set_cell(tile_pos, GameConstants.TILEMAP_SOURCE_ID, floor_tile)
 
 	EventBus.tile_corrupted.emit(tile_pos)
 	_update_corruption_percent()
@@ -261,7 +263,7 @@ func _get_corruption_candidates() -> Array[Vector2i]:
 func _can_corrupt_tile(pos: Vector2i) -> bool:
 	if corrupted_tiles.has(pos):
 		return false
-	return terrain_map.get_cell_source_id(pos) != -1
+	return floor_map.get_cell_source_id(pos) != -1
 
 
 func _update_corruption_percent() -> void:
