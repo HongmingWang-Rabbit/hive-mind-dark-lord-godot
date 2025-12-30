@@ -1,6 +1,11 @@
 extends Node2D
 ## World manager - handles map generation and corruption spreading
 ## Uses TileData for tile coordinates and GameConstants for generation settings
+##
+## Tile Layers (bottom to top):
+##   FloorMap     - Base floor tiles
+##   StructureMap - Buildings, walls, props
+##   CorruptionMap - Purple corruption overlay
 
 const Tiles := preload("res://scripts/data/tile_data.gd")
 

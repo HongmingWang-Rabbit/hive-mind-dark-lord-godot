@@ -189,7 +189,16 @@ To replace with a different camera:
 
 1. **Map Generation** - Procedural floor, buildings, props
 2. **Corruption System** - Spreading, tracking, percentage
-3. **Tile Management** - Uses TileData for coordinates, GameConstants for settings
+3. **Tile Layer Management** - Three TileMapLayers for proper rendering order
+
+### Tile Layers (bottom to top)
+| Layer | Variable | Content |
+|-------|----------|---------|
+| FloorMap | `floor_map` | Base floor tiles |
+| StructureMap | `structure_map` | Buildings, walls, props |
+| CorruptionMap | `corruption_map` | Purple corruption overlay |
+
+Corruption spreads on floor tiles; structures render above corruption.
 
 ### Key Functions
 ```gdscript
