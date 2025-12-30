@@ -4,7 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Hive Mind Dark Lord is a real-time strategy game built in Godot 4.5 where the player controls a dark lord spreading corruption across a city. 7-day game jam scope.
+Hive Mind Dark Lord is a real-time strategy game built in Godot 4.5. Two parallel maps - Dark World and Human World with identical terrain but different states. You are the Dark Lord trying to corrupt the Human World from the Dark World.
+
+**Key mechanic:** You must enter Human World to harvest resources (essence from killing civilians/animals), but this raises threat level. At high threat, military opens their own portals and invades YOUR Dark World to cleanse corruption. You can't hide forever.
+
+**Win:** Corrupt 100% of Human World
+**Lose:** Dark Lord dies OR all Dark World corruption cleansed
+
+7-day game jam scope.
 
 ## Running the Project
 

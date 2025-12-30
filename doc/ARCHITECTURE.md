@@ -55,33 +55,54 @@ var tiles := FogUtils.get_tiles_in_sight_range(center, range)
 # Game flow
 Enums.GameState {MENU, PLAYING, PAUSED, WON, LOST}
 
-# Units
+# Units - Player
 Enums.MinionType {CRAWLER, BRUTE, STALKER}
-Enums.MinionAssignment {IDLE, ATTACKING, DEFENDING}
+Enums.MinionAssignment {IDLE, ATTACKING, DEFENDING, SCOUTING}
 Enums.Stance {AGGRESSIVE, HOLD, RETREAT}
 
+# Units - Human World
+Enums.HumanType {CIVILIAN, ANIMAL, POLICE, MILITARY, HEAVY, SPECIAL}
+
+# Units - Special Forces (invade Dark World)
+Enums.SpecialForcesType {SCOUT, CLEANSER, STRIKE_TEAM}
+
 # World
-Enums.BuildingType {CORRUPTION_NODE, SPAWNING_PIT, PORTAL}
-Enums.ThreatLevel {NONE, POLICE, MILITARY, HEAVY}
+Enums.BuildingType {CORRUPTION_NODE, SPAWNING_PIT, PORTAL, MILITARY_PORTAL}
+Enums.ThreatLevel {NONE, LOW, MEDIUM, HIGH, CRITICAL}
 Enums.TileType {FLOOR, WALL, PROP, EMPTY}
 Enums.WorldType {CORRUPTED, HUMAN}
+
+# Portal ownership
+Enums.PortalOwner {DARK_LORD, MILITARY}
 ```
 
 ## EventBus Signals
 
 ```gdscript
 # Corruption
-signal tile_corrupted(tile_pos: Vector2i)
-signal corruption_changed(new_percent: float)
+signal tile_corrupted(tile_pos: Vector2i, world: Enums.WorldType)
+signal corruption_changed(new_percent: float, world: Enums.WorldType)
+signal corruption_cleansed(tile_pos: Vector2i, world: Enums.WorldType)
 
-# Combat
-signal human_killed(position: Vector2)
+# Combat - Human World
+signal entity_killed(position: Vector2, entity_type: Enums.HumanType)
 signal human_possessed(position: Vector2)
-signal enemy_spotted(position: Vector2, threat_type: int)
+signal enemy_spotted(position: Vector2, threat_type: Enums.ThreatLevel)
+
+# Combat - Dark World Invasion
+signal dark_world_invaded(portal_pos: Vector2i)
+signal special_forces_spawned(position: Vector2, force_type: Enums.SpecialForcesType)
+signal dark_lord_attacked(attacker_pos: Vector2)
 
 # Buildings
-signal building_placed(building_type: Enums.BuildingType, position: Vector2)
+signal building_placed(building_type: Enums.BuildingType, position: Vector2, world: Enums.WorldType)
 signal building_destroyed(building_type: Enums.BuildingType, position: Vector2)
+
+# Portals
+signal portal_placed(tile_pos: Vector2i, world: Enums.WorldType, owner: Enums.PortalOwner)
+signal portal_activated(tile_pos: Vector2i)
+signal portal_closed(tile_pos: Vector2i, world: Enums.WorldType)
+signal military_portal_opened(tile_pos: Vector2i)  # AI-controlled, player cannot prevent
 
 # Commands
 signal attack_ordered(target_pos: Vector2, minion_percent: float, stance: Enums.Stance)
@@ -90,13 +111,10 @@ signal retreat_ordered()
 # Game State
 signal threat_level_changed(new_level: Enums.ThreatLevel)
 signal game_won()
-signal game_lost()
+signal game_lost(reason: String)  # "dark_lord_died" or "corruption_wiped"
 
 # World Dimension
 signal world_switched(new_world: Enums.WorldType)
-signal portal_placed(tile_pos: Vector2i, world: Enums.WorldType)
-signal portal_activated(tile_pos: Vector2i)
-signal corruption_cleared(tile_pos: Vector2i)
 
 # Fog of War
 signal fog_update_requested(world: Enums.WorldType)
@@ -104,6 +122,10 @@ signal fog_update_requested(world: Enums.WorldType)
 # Toolbar
 signal building_requested(building_type: Enums.BuildingType)
 signal order_requested(assignment: Enums.MinionAssignment)
+
+# Resources
+signal essence_harvested(amount: int, source: Enums.HumanType)
+signal evolution_points_gained(amount: int, source: String)
 ```
 
 ## GameConstants Reference
@@ -123,8 +145,16 @@ MINION_STATS[MinionType] = {cost, upkeep, hp, damage, speed}
 BUILDING_STATS[BuildingType] = {cost, ...}  # Portal uses PortalData.gd instead
 
 #region Win/Lose
-WIN_THRESHOLD           # Corruption % to win (0.8)
-THREAT_THRESHOLDS       # Array of corruption % triggers
+WIN_THRESHOLD           # Corruption % to win (1.0 = 100% Human World)
+THREAT_THRESHOLDS       # Array of corruption % triggers for each threat level
+
+#region Resource Rates (per world)
+DARK_WORLD_PASSIVE_INCOME   # Limited income in Dark World
+HUMAN_WORLD_TILE_INCOME     # Income per corrupted tile in Human World
+ESSENCE_PER_CIVILIAN        # +10
+ESSENCE_PER_ANIMAL          # +5
+ESSENCE_PER_MILITARY_KILL   # +15
+EVOLUTION_PER_SPECIAL       # Points for consuming special humans
 
 #region Map Generation
 MAP_WIDTH, MAP_HEIGHT   # Default map dimensions
@@ -225,6 +255,25 @@ Main (World.gd)
 ```
 
 Both worlds have identical terrain layout but **separate entities and fog**. Each world has its own Entities container and FogMap. Entities exist in exactly one world at a time and must travel through portals to move between worlds. Only one world is visible at a time (view toggle), but entities remain in their world.
+
+**Key difference:** Dark World has limited resources (forces expansion). Human World has abundant resources but raises threat when harvested. At high threat, military opens their own portals and invades Dark World.
+
+## Threat System
+
+### Threat Level Responses
+| Level    | Human World                   | Dark World                              |
+|----------|-------------------------------|-----------------------------------------|
+| NONE     | Peaceful                      | Safe                                    |
+| LOW      | Police investigate            | Safe                                    |
+| MEDIUM   | Military patrols              | Special forces scout near portals       |
+| HIGH     | Heavy military deployed       | Military opens own portals, invades     |
+| CRITICAL | Full war, all units attack    | Coordinated assault to kill Dark Lord   |
+
+### Threat Triggers
+- Corruption % in Human World
+- Civilians killed
+- Military casualties
+- Time spent in Human World by Dark Lord
 
 ## HUDController.gd
 
@@ -444,6 +493,9 @@ WANDER_SPEED        # float - movement speed
 WANDER_INTERVAL_MIN # float - min wait between moves
 WANDER_INTERVAL_MAX # float - max wait between moves
 SIGHT_RANGE         # int - tiles visible around Dark Lord (fog of war)
+MAX_HP              # int - Dark Lord health (strong monster, can fight)
+DAMAGE              # int - attack damage
+ATTACK_COOLDOWN     # float - seconds between attacks
 ```
 
 ### Current Behavior
@@ -451,6 +503,12 @@ SIGHT_RANGE         # int - tiles visible around Dark Lord (fog of war)
 - Moves one tile at a time
 - Waits random interval between moves
 - Reveals fog in sight range when moving (via `get_visible_tiles()`)
+
+### Combat (TODO)
+- Has HP - can take damage and die (Game Over)
+- Strong monster - can fight police/military directly
+- Should avoid being overwhelmed by large groups
+- Death triggers `game_lost("dark_lord_died")`
 
 ### Scene Structure (dark_lord.tscn)
 ```
@@ -555,6 +613,23 @@ Uses Euclidean distance (circular reveal) via squared distance comparison for ef
 6. Use preload pattern: `const Data := preload("res://scripts/entities/your_entity/YourEntityData.gd")`
 7. Set all configurable values (scale, collision, speeds) from Data in `_ready()`
 
+### New Human World Entity (Civilian, Animal, etc.)
+1. Add to `Enums.HumanType`
+2. Create entity following "New Entity Type" pattern
+3. Add essence value to `GameConstants.ESSENCE_PER_*`
+4. Add spawn logic to Human World entity spawner
+5. If special: add evolution points to `GameConstants.EVOLUTION_PER_SPECIAL`
+
+**Note:** Animals use generic `HumanType.ANIMAL` but the system is extensible.
+Future special creatures (e.g., rare monsters, easter eggs) can have their own
+type and custom rewards. Just add new enum value and configure rewards.
+
+### New Special Forces Type (Invade Dark World)
+1. Add to `Enums.SpecialForcesType`
+2. Create entity following "New Entity Type" pattern
+3. Add behavior: SCOUT (report), CLEANSER (remove corruption), STRIKE_TEAM (attack)
+4. Add spawn trigger at appropriate threat level
+
 ### New Minion Type
 1. Add to `Enums.MinionType`
 2. Add stats to `GameConstants.MINION_STATS`
@@ -565,6 +640,14 @@ Uses Euclidean distance (circular reveal) via squared distance comparison for ef
 1. Add to `Enums.BuildingType`
 2. Add stats to `GameConstants.BUILDING_STATS`
 3. Add tiles to `TileData.PROP_*`
+
+### Military Portal System
+Military portals are AI-controlled and open at HIGH+ threat:
+1. Listen for `threat_level_changed` signal
+2. At HIGH threat, spawn military portals **dynamically near player corruption** (not fixed)
+3. Emit `military_portal_opened` signal
+4. Special forces enter through military portals
+5. Player CANNOT close or prevent military portals
 
 ### New Tileset
 1. Replace `TileData` coordinates
