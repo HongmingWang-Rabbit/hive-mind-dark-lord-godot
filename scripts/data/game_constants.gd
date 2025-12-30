@@ -43,8 +43,8 @@ const THREAT_THRESHOLDS: Array[float] = [0.2, 0.4, 0.6]
 
 #region Map Generation
 
-const MAP_WIDTH := 30
-const MAP_HEIGHT := 17
+const MAP_WIDTH := 50
+const MAP_HEIGHT := 30
 const MAP_EDGE_MARGIN := 1
 
 # TileMap source ID (atlas index in tileset)
