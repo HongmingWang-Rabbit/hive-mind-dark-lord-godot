@@ -73,8 +73,10 @@ doc/            # Design docs
 - `doc/TILE_REFERENCE.md` - Atlas coordinates
 - `doc/JAM_SCOPE.md` - 7-day priorities
 
-## Debug Controls
+## Controls
 
+- **Arrow keys / WASD**: Pan camera
+- **Mouse drag (left/middle)**: Pan camera
 - **Space**: Spread corruption
 
 ## Modifying Game Balance
@@ -90,6 +92,7 @@ BUILDING_COUNT_MIN/MAX, PROP_COUNT
 FLOOR_WEIGHT_MAIN/ALT/VARIATION
 TILEMAP_SOURCE_ID
 VIEWPORT_WIDTH, VIEWPORT_HEIGHT, CAMERA_CENTER
+TILE_SIZE, CAMERA_PAN_SPEED, CAMERA_EDGE_PADDING
 CORRUPTION_COLOR
 ```
 

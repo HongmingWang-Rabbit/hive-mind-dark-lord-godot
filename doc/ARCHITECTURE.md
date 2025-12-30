@@ -122,6 +122,11 @@ VIEWPORT_WIDTH          # Game viewport width (480)
 VIEWPORT_HEIGHT         # Game viewport height (270)
 CAMERA_CENTER           # Camera center position (Vector2)
 
+#region Camera
+TILE_SIZE               # Tile size in pixels (16)
+CAMERA_PAN_SPEED        # Camera movement speed (200.0)
+CAMERA_EDGE_PADDING     # Pixels beyond map edges camera can see (32)
+
 #region Corruption Visual
 CORRUPTION_COLOR        # Color for corruption overlay
 

@@ -77,6 +77,14 @@ const CAMERA_CENTER := Vector2(VIEWPORT_WIDTH / 2.0, VIEWPORT_HEIGHT / 2.0)
 
 #endregion
 
+#region Camera
+
+const TILE_SIZE := 16
+const CAMERA_PAN_SPEED := 200.0
+const CAMERA_EDGE_PADDING := 32  # Pixels of padding beyond map edges
+
+#endregion
+
 #region Corruption Visual
 
 const CORRUPTION_COLOR := Color(0.6, 0.2, 0.8, 0.7)
