@@ -11,6 +11,7 @@ var _is_moving := false
 
 
 func _ready() -> void:
+	sprite.scale = GameConstants.DARK_LORD_SPRITE_SCALE
 	_start_wander_timer()
 
 
