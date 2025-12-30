@@ -40,7 +40,7 @@ Fog of war utility functions. Used by entities to calculate visible tiles.
 ```gdscript
 const FogUtils := preload("res://scripts/utils/fog_utils.gd")
 
-# Get tiles within Manhattan distance:
+# Get tiles within circular distance:
 var tiles := FogUtils.get_tiles_in_sight_range(center, range)
 ```
 
@@ -493,7 +493,7 @@ Entities that reveal fog implement `get_visible_tiles() -> Array[Vector2i]`. Cal
 ```gdscript
 const FogUtils := preload("res://scripts/utils/fog_utils.gd")
 
-# Static function for Manhattan distance tile calculation
+# Static function for circular (Euclidean) distance tile calculation
 FogUtils.get_tiles_in_sight_range(center: Vector2i, sight_range: int) -> Array[Vector2i]
 ```
 
@@ -505,6 +505,9 @@ func get_visible_tiles() -> Array[Vector2i]:
     var center := Vector2i(global_position / GameConstants.TILE_SIZE)
     return FogUtils.get_tiles_in_sight_range(center, Data.SIGHT_RANGE)
 ```
+
+### Visibility Shape
+Uses Euclidean distance (circular reveal) via squared distance comparison for efficiency.
 
 ### Fog Reveal Triggers
 - **Entity movement**: Emit `EventBus.fog_update_requested.emit(WorldManager.active_world)`
