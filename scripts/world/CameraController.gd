@@ -13,7 +13,8 @@ var _drag_start_camera: Vector2
 
 
 func _ready() -> void:
-	position = GameConstants.CAMERA_CENTER
+	# Position set by center_on_tile() after map generation
+	pass
 
 
 func _process(delta: float) -> void:
@@ -22,6 +23,13 @@ func _process(delta: float) -> void:
 
 func _input(event: InputEvent) -> void:
 	_handle_drag(event)
+
+
+## Center camera on a tile position
+func center_on_tile(tile_pos: Vector2i) -> void:
+	var tile_size := GameConstants.TILE_SIZE
+	position = Vector2(tile_pos) * tile_size + Vector2(tile_size, tile_size) / 2.0
+	_clamp_position()
 
 
 ## Configure camera bounds based on map size in tiles

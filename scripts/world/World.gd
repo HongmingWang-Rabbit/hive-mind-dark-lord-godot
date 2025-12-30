@@ -23,6 +23,9 @@ var total_tiles: int = 0
 var map_width: int
 var map_height: int
 
+# Initial state
+var _initial_corruption_tile: Vector2i
+
 
 func _ready() -> void:
 	_init_visual_settings()
@@ -52,6 +55,7 @@ func _init_map_size() -> void:
 
 func _init_camera() -> void:
 	camera.set_map_bounds(map_width, map_height)
+	camera.center_on_tile(_initial_corruption_tile)
 
 
 func _count_existing_tiles() -> void:
@@ -194,6 +198,7 @@ func _start_initial_corruption() -> void:
 	var center := Vector2i(map_width / 2, map_height / 2)
 	if occupied_tiles.has(center):
 		center = _find_nearest_free_tile(center)
+	_initial_corruption_tile = center
 	corrupt_tile(center)
 
 
