@@ -126,6 +126,7 @@ CAMERA_CENTER           # Camera center position (Vector2)
 TILE_SIZE               # Tile size in pixels (16)
 CAMERA_PAN_SPEED        # Camera movement speed (200.0)
 CAMERA_EDGE_PADDING     # Pixels beyond map edges camera can see (32)
+CAMERA_DRAG_BUTTONS     # [MouseButton] - buttons that trigger camera drag
 
 #region Corruption Visual
 CORRUPTION_COLOR        # Color for corruption overlay
@@ -145,7 +146,7 @@ Main (World.gd)
 ├── Entities [Node2D]
 ├── UI [CanvasLayer]
 │   └── HUD
-└── Camera2D
+└── Camera2D (CameraController.gd) - Pan via keyboard/mouse
 ```
 
 ## System Reset Flow
@@ -155,6 +156,26 @@ GameManager.reset_game()  # Resets all systems
     → Essence.reset()     # Reset to STARTING_ESSENCE
     → HivePool.reset()    # Clear all minion pools
 ```
+
+## CameraController.gd
+
+Standalone camera script attached to Camera2D node. Handles all camera movement.
+
+### Features
+- **Keyboard pan**: Arrow keys and WASD
+- **Mouse drag**: Configurable buttons (default: left/middle)
+- **Bounds clamping**: Prevents camera from leaving map area
+
+### Public API
+```gdscript
+set_map_bounds(map_width: int, map_height: int)  # Call after map generation
+```
+
+### Swapping Camera System
+To replace with a different camera:
+1. Create new script extending Camera2D
+2. Implement `set_map_bounds()` method
+3. Attach to Camera2D node in main.tscn
 
 ## World.gd Responsibilities
 

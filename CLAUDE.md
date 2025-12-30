@@ -49,7 +49,7 @@ GameManager    → Game state, win/lose conditions
 scripts/
   data/         # Enums, GameConstants, TileData
   systems/      # Autoloads (GameManager, Essence, HivePool, EventBus)
-  world/        # World.gd - map generation, corruption
+  world/        # World.gd, CameraController.gd
   entities/     # Entity scripts (minions, humans, buildings)
   ui/           # UI controller scripts
 scenes/
@@ -92,7 +92,7 @@ BUILDING_COUNT_MIN/MAX, PROP_COUNT
 FLOOR_WEIGHT_MAIN/ALT/VARIATION
 TILEMAP_SOURCE_ID
 VIEWPORT_WIDTH, VIEWPORT_HEIGHT, CAMERA_CENTER
-TILE_SIZE, CAMERA_PAN_SPEED, CAMERA_EDGE_PADDING
+TILE_SIZE, CAMERA_PAN_SPEED, CAMERA_EDGE_PADDING, CAMERA_DRAG_BUTTONS
 CORRUPTION_COLOR
 ```
 

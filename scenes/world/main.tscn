@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=4 uid="uid://bxk2etrdneiem"]
+[gd_scene load_steps=5 format=4 uid="uid://bxk2etrdneiem"]
 
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="1_hud"]
 [ext_resource type="TileSet" uid="uid://claey8koq7by0" path="res://resources/dungeon_tileset.tres" id="2_tileset"]
 [ext_resource type="Script" uid="uid://dow3lho3mi3jn" path="res://scripts/world/World.gd" id="3_world"]
+[ext_resource type="Script" path="res://scripts/world/CameraController.gd" id="4_camera"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("3_world")
@@ -25,3 +26,4 @@ tile_set = ExtResource("2_tileset")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 position = Vector2(240, 135)
+script = ExtResource("4_camera")

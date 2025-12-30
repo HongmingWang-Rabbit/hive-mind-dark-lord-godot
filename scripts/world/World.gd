@@ -6,7 +6,7 @@ const Tiles := preload("res://scripts/data/tile_data.gd")
 
 @onready var terrain_map: TileMapLayer = $TerrainMap
 @onready var corruption_map: TileMapLayer = $CorruptionMap
-@onready var camera: Camera2D = $Camera2D
+@onready var camera: Camera2D = $Camera2D  # Expects CameraController.gd attached
 
 # Generation toggle (can override constants via inspector)
 @export var use_procedural_generation := true
@@ -23,12 +23,6 @@ var total_tiles: int = 0
 var map_width: int
 var map_height: int
 
-# Camera state
-var _camera_bounds: Rect2
-var _is_dragging := false
-var _drag_start_mouse: Vector2
-var _drag_start_camera: Vector2
-
 
 func _ready() -> void:
 	_init_visual_settings()
@@ -39,17 +33,12 @@ func _ready() -> void:
 	else:
 		_count_existing_tiles()
 
-	_init_camera_bounds()
+	_init_camera()
 	GameManager.start_game()
-
-
-func _process(delta: float) -> void:
-	_handle_camera_keyboard(delta)
 
 
 func _init_visual_settings() -> void:
 	corruption_map.modulate = GameConstants.CORRUPTION_COLOR
-	camera.position = GameConstants.CAMERA_CENTER
 
 
 func _init_map_size() -> void:
@@ -61,62 +50,8 @@ func _init_map_size() -> void:
 		map_height = GameConstants.MAP_HEIGHT
 
 
-func _init_camera_bounds() -> void:
-	var tile_size := GameConstants.TILE_SIZE
-	var padding := GameConstants.CAMERA_EDGE_PADDING
-	var half_viewport := Vector2(GameConstants.VIEWPORT_WIDTH, GameConstants.VIEWPORT_HEIGHT) / 2.0
-
-	var map_pixel_size := Vector2(map_width * tile_size, map_height * tile_size)
-
-	# Camera bounds are where the camera CENTER can be positioned
-	_camera_bounds = Rect2(
-		half_viewport.x - padding,
-		half_viewport.y - padding,
-		map_pixel_size.x - GameConstants.VIEWPORT_WIDTH + padding * 2,
-		map_pixel_size.y - GameConstants.VIEWPORT_HEIGHT + padding * 2
-	)
-
-	# Ensure minimum bounds if map is smaller than viewport
-	if _camera_bounds.size.x < 0:
-		_camera_bounds.position.x = map_pixel_size.x / 2.0
-		_camera_bounds.size.x = 0
-	if _camera_bounds.size.y < 0:
-		_camera_bounds.position.y = map_pixel_size.y / 2.0
-		_camera_bounds.size.y = 0
-
-
-func _handle_camera_keyboard(delta: float) -> void:
-	var input_dir := Vector2.ZERO
-
-	# Arrow keys
-	if Input.is_action_pressed("ui_left"):
-		input_dir.x -= 1
-	if Input.is_action_pressed("ui_right"):
-		input_dir.x += 1
-	if Input.is_action_pressed("ui_up"):
-		input_dir.y -= 1
-	if Input.is_action_pressed("ui_down"):
-		input_dir.y += 1
-
-	# WASD keys
-	if Input.is_physical_key_pressed(KEY_A):
-		input_dir.x -= 1
-	if Input.is_physical_key_pressed(KEY_D):
-		input_dir.x += 1
-	if Input.is_physical_key_pressed(KEY_W):
-		input_dir.y -= 1
-	if Input.is_physical_key_pressed(KEY_S):
-		input_dir.y += 1
-
-	if input_dir != Vector2.ZERO:
-		var movement := input_dir.normalized() * GameConstants.CAMERA_PAN_SPEED * delta
-		camera.position += movement
-		_clamp_camera()
-
-
-func _clamp_camera() -> void:
-	camera.position.x = clampf(camera.position.x, _camera_bounds.position.x, _camera_bounds.end.x)
-	camera.position.y = clampf(camera.position.y, _camera_bounds.position.y, _camera_bounds.end.y)
+func _init_camera() -> void:
+	camera.set_map_bounds(map_width, map_height)
 
 
 func _count_existing_tiles() -> void:
@@ -338,25 +273,5 @@ func _update_corruption_percent() -> void:
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_accept"):
 		spread_corruption()
-
-	_handle_camera_drag(event)
-
-
-func _handle_camera_drag(event: InputEvent) -> void:
-	if event is InputEventMouseButton:
-		var mouse_event := event as InputEventMouseButton
-		if mouse_event.button_index == MOUSE_BUTTON_LEFT or mouse_event.button_index == MOUSE_BUTTON_MIDDLE:
-			if mouse_event.pressed:
-				_is_dragging = true
-				_drag_start_mouse = mouse_event.position
-				_drag_start_camera = camera.position
-			else:
-				_is_dragging = false
-
-	elif event is InputEventMouseMotion and _is_dragging:
-		var motion_event := event as InputEventMouseMotion
-		var drag_delta := _drag_start_mouse - motion_event.position
-		camera.position = _drag_start_camera + drag_delta
-		_clamp_camera()
 
 #endregion

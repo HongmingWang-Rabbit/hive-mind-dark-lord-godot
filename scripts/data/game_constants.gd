@@ -81,7 +81,8 @@ const CAMERA_CENTER := Vector2(VIEWPORT_WIDTH / 2.0, VIEWPORT_HEIGHT / 2.0)
 
 const TILE_SIZE := 16
 const CAMERA_PAN_SPEED := 200.0
-const CAMERA_EDGE_PADDING := 32  # Pixels of padding beyond map edges
+const CAMERA_EDGE_PADDING := 32  # Pixels beyond map edges camera can see
+const CAMERA_DRAG_BUTTONS: Array[MouseButton] = [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE]
 
 #endregion
 
