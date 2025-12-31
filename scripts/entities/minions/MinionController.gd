@@ -61,9 +61,7 @@ func _setup_combat() -> void:
 		circle.radius = Data.ATTACK_RANGE
 		attack_shape.shape = circle
 
-	# Get attack cooldown from stats
-	var stats: Dictionary = GameConstants.MINION_STATS.get(minion_type, {})
-	attack_timer.wait_time = 0.5  # Default cooldown
+	attack_timer.wait_time = Data.ATTACK_COOLDOWN
 	attack_timer.one_shot = true
 
 	# Connect signals
@@ -115,15 +113,15 @@ func _process_wander() -> void:
 	var target := dark_lord.global_position + _wander_offset
 	var distance := global_position.distance_to(target)
 	var stats: Dictionary = GameConstants.MINION_STATS.get(minion_type, {})
-	var speed: float = stats.get("speed", 60.0) * 0.5  # Slower wander
+	var speed: float = stats.get("speed", 60.0) * Data.WANDER_SPEED_FACTOR
 
 	# Check if Dark Lord moved too far
 	var lord_distance := global_position.distance_to(dark_lord.global_position)
-	if lord_distance > Data.FOLLOW_DISTANCE * 1.5:
+	if lord_distance > Data.FOLLOW_DISTANCE * Data.FOLLOW_DISTANCE_THRESHOLD:
 		_state = State.FOLLOW
 		return
 
-	if distance > 4.0:
+	if distance > Data.WANDER_ARRIVAL_DISTANCE:
 		var direction := (target - global_position).normalized()
 		velocity = direction * speed
 
@@ -134,7 +132,7 @@ func _process_wander() -> void:
 	else:
 		velocity = Vector2.ZERO
 		# Pick new wander point occasionally
-		if randi() % 60 == 0:
+		if randi_range(0, Data.WANDER_DIRECTION_CHANGE_CHANCE - 1) == 0:
 			_pick_wander_offset()
 
 
@@ -151,7 +149,7 @@ func _process_attack() -> void:
 	var stats: Dictionary = GameConstants.MINION_STATS.get(minion_type, {})
 	var speed: float = stats.get("speed", 60.0)
 
-	if distance > Data.ATTACK_RANGE * 0.8:
+	if distance > Data.ATTACK_RANGE * Data.ATTACK_RANGE_FACTOR:
 		var direction := (_current_target.global_position - global_position).normalized()
 		velocity = direction * speed
 

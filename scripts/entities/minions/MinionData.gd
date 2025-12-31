@@ -9,6 +9,11 @@ const SPRITE_SIZE_RATIO := 1.0
 
 # AI behavior
 const FOLLOW_DISTANCE := 32.0  # Stay this far from Dark Lord when following
+const FOLLOW_DISTANCE_THRESHOLD := 1.5  # Multiplier for when to start following again
 const ATTACK_RANGE := 12.0  # Range to attack enemies
+const ATTACK_RANGE_FACTOR := 0.8  # Move closer than full range before attacking
+const ATTACK_COOLDOWN := 0.5  # Seconds between attacks
 const WANDER_RADIUS := 24.0  # Wander radius when idle near Dark Lord
-const WANDER_INTERVAL := 0.5  # Time between wander position updates
+const WANDER_SPEED_FACTOR := 0.5  # Wander at this fraction of full speed
+const WANDER_ARRIVAL_DISTANCE := 4.0  # Consider arrived when this close
+const WANDER_DIRECTION_CHANGE_CHANCE := 60  # 1 in N frames to pick new wander target

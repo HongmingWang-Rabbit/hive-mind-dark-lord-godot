@@ -92,6 +92,8 @@ const ENEMY_SPAWN_MARGIN := 2  # Tiles from map edge to spawn
 const GROUP_ENEMIES := "enemies"
 const GROUP_POLICE := "police"
 const GROUP_MILITARY := "military"
+const GROUP_HEAVY := "heavy"
+const GROUP_SPECIAL_FORCES := "special_forces"
 
 #endregion
 

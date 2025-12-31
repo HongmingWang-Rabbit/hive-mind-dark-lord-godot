@@ -58,10 +58,12 @@ func setup(type: Enums.EnemyType) -> void:
 			_hp = GameConstants.HEAVY_HP
 			_damage = GameConstants.HEAVY_DAMAGE
 			_speed = GameConstants.HEAVY_SPEED
+			add_to_group(GameConstants.GROUP_HEAVY)
 		Enums.EnemyType.SPECIAL_FORCES:
 			_hp = GameConstants.SPECIAL_FORCES_HP
 			_damage = GameConstants.SPECIAL_FORCES_DAMAGE
 			_speed = GameConstants.SPECIAL_FORCES_SPEED
+			add_to_group(GameConstants.GROUP_SPECIAL_FORCES)
 
 
 func _setup_collision_shape() -> void:
@@ -100,7 +102,7 @@ func _setup_combat() -> void:
 		circle.radius = Data.ATTACK_RANGE
 		attack_shape.shape = circle
 
-	attack_timer.wait_time = 0.5
+	attack_timer.wait_time = Data.ATTACK_COOLDOWN
 	attack_timer.one_shot = true
 
 	attack_range.body_entered.connect(_on_attack_range_body_entered)
@@ -124,9 +126,9 @@ func _physics_process(_delta: float) -> void:
 func _process_patrol() -> void:
 	var distance := global_position.distance_to(_patrol_target)
 
-	if distance > 4.0:
+	if distance > Data.PATROL_ARRIVAL_DISTANCE:
 		var direction := (_patrol_target - global_position).normalized()
-		velocity = direction * _speed * 0.5  # Slower patrol speed
+		velocity = direction * _speed * Data.PATROL_SPEED_FACTOR
 
 		if velocity.x != 0:
 			sprite.flip_h = velocity.x < 0
@@ -147,7 +149,7 @@ func _process_chase() -> void:
 
 	var distance := global_position.distance_to(_chase_target.global_position)
 
-	if distance > Data.ATTACK_RANGE * 0.8:
+	if distance > Data.ATTACK_RANGE * Data.ATTACK_RANGE_FACTOR:
 		var direction := (_chase_target.global_position - global_position).normalized()
 		velocity = direction * _speed
 

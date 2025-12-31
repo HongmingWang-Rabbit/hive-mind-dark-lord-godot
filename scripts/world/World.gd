@@ -722,8 +722,10 @@ func _count_enemies_of_type(type: Enums.EnemyType) -> int:
 			group_name = GameConstants.GROUP_POLICE
 		Enums.EnemyType.MILITARY:
 			group_name = GameConstants.GROUP_MILITARY
-		_:
-			group_name = GameConstants.GROUP_ENEMIES
+		Enums.EnemyType.HEAVY:
+			group_name = GameConstants.GROUP_HEAVY
+		Enums.EnemyType.SPECIAL_FORCES:
+			group_name = GameConstants.GROUP_SPECIAL_FORCES
 
 	return get_tree().get_nodes_in_group(group_name).size()
 
