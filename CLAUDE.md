@@ -41,10 +41,12 @@ GameManager    → Game state, win/lose conditions
   const Data := preload("res://scripts/entities/dark_lord/DarkLordData.gd")
   var speed := Data.WANDER_SPEED
   ```
-- Building Data scripts also include sprite paths:
+- Building Data scripts include sprite paths and UI display info:
   ```gdscript
   const Data := preload("res://scripts/entities/buildings/PortalData.gd")
   var texture := load(Data.SPRITE_PATH)
+  var name := Data.NAME          # "Portal"
+  var desc := Data.DESCRIPTION   # "Travel between Dark and Human worlds"
   ```
 - Human entity data - Civilians and animals:
   ```gdscript

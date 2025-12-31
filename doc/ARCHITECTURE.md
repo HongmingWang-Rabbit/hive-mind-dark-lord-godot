@@ -30,6 +30,7 @@ GameManager (uses all above, including WorldManager)
 **Data files** (preload) contain:
 - Entity-specific configuration (collision radius, sprite scale, movement speed)
 - Sprite asset paths (e.g., `SPRITE_PATH := "res://assets/sprites/buildings/dark_portal.png"`)
+- UI display info for buildings (NAME, DESCRIPTION)
 - Values specific to how an entity looks/moves, not its combat stats
 - Non-balance values that define entity behavior
 
@@ -315,7 +316,7 @@ Main (World.gd)
 │       ├── ContextPanel
 │       ├── BottomToolbar [PanelContainer]
 │       │   └── HBox [HBoxContainer]
-│       │       ├── BuildingsSection (N:50, P:100, O:20)
+│       │       ├── BuildingsSection (icon buttons with tooltips)
 │       │       ├── OrdersSection (Atk, Sct, Def, Ret)
 │       │       └── EvolveSection (Evo)
 │       └── ModeIndicator [Label] - Shows "Click to place/target"
@@ -388,11 +389,11 @@ Flow:
 ### Bottom Toolbar Sections
 | Section | Buttons | Emits |
 |---------|---------|-------|
-| Buildings | N:50, P:100, O:20 | `build_mode_entered(BuildingType)` |
+| Buildings | Icon buttons (sprites from Data.SPRITE_PATH) | `build_mode_entered(BuildingType)` |
 | Orders | Atk, Sct, Def, Ret | `order_mode_entered(MinionAssignment)`, `retreat_ordered()` |
 | Evolve | Evo | `evolve_modal_requested()` |
 
-Building buttons auto-disable when player can't afford the cost. Costs are retrieved via `_get_building_cost()` helper which routes to either `GameConstants.BUILDING_STATS` or `PortalData.PLACEMENT_COST`.
+Building buttons display sprites from Data files with tooltips showing "Name (cost)\nDescription". Buttons auto-disable when player can't afford the cost. Costs are retrieved via `_get_building_cost()` helper which routes to either `GameConstants.BUILDING_STATS` or `PortalData.PLACEMENT_COST`.
 
 ### UI Text Constants
 ```gdscript
@@ -402,9 +403,7 @@ ESSENCE_FORMAT          # "E:%d" (compact for 480x270 viewport)
 CORRUPTION_FORMAT       # "C:%d%%"
 THREAT_FORMAT           # "T:%s"
 THREAT_LEVEL_NAMES      # ["None", "Police", "Military", "Heavy"]
-NODE_BTN_FORMAT         # "N:%d" (Corruption Node)
-PIT_BTN_FORMAT          # "P:%d" (Spawning Pit)
-PORTAL_BTN_FORMAT       # "O:%d" (Portal)
+BUILDING_TOOLTIP_FORMAT # "%s (%d)\n%s" - "Name (cost)\nDescription"
 MODE_BUILD              # "Click to place"
 MODE_ORDER              # "Click to target"
 ```
@@ -469,6 +468,7 @@ MODAL_OVERLAY_COLOR          # Semi-transparent overlay color
 TOOLBAR_HEIGHT              # 24px
 TOOLBAR_SECTION_SEPARATION  # 4px between sections
 TOOLBAR_LABEL_COLOR         # Light purple section headers
+BUILDING_BUTTON_ICON_SIZE   # Vector2i(16, 16) - icon size for building buttons
 ```
 
 ## System Reset Flow
@@ -730,6 +730,8 @@ scenes/entities/buildings/
 const Data := preload("res://scripts/entities/buildings/PortalData.gd")
 
 # PortalData.gd constants:
+NAME                    # string - display name for UI ("Portal")
+DESCRIPTION             # string - tooltip description
 SPRITE_PATH             # string - path to sprite asset
 COLLISION_RADIUS        # float - physics collision size
 TRAVEL_TRIGGER_RADIUS   # float - area for travel detection
