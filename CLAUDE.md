@@ -85,20 +85,22 @@ scripts/
   world/        # World.gd, CameraController.gd
   entities/     # Entity scripts organized by entity type
     dark_lord/  # DarkLordData.gd, DarkLordController.gd
-    buildings/  # PortalData.gd, PortalController.gd
+    buildings/  # PortalData/Controller, CorruptionNodeData/Controller, SpawningPitData/Controller
     humans/     # CivilianData.gd, CivilianController.gd, AnimalData.gd, AnimalController.gd
     minions/    # MinionData.gd, MinionController.gd
     enemies/    # EnemyData.gd, EnemyController.gd
   ui/           # UI controller scripts
     HUDController.gd
-    UITheme.gd  # UI colors and styling constants
+    UITheme.gd     # UI colors and styling constants
+    EvolveModal.gd # Placeholder evolution modal
+    GameOverScreen.gd
   utils/        # Utility scripts (preload pattern)
     fog_utils.gd  # Fog of war visibility calculations
 scenes/
   world/        # main.tscn
   entities/     # Entity scenes organized by entity type
     dark_lord/  # dark_lord.tscn
-    buildings/  # portal.tscn
+    buildings/  # portal.tscn, corruption_node.tscn, spawning_pit.tscn
     humans/     # civilian.tscn, animal.tscn
     minions/    # minion.tscn
     enemies/    # enemy.tscn
@@ -122,16 +124,26 @@ doc/            # Design docs
 
 ## Controls
 
+### Camera
 - **Arrow keys / WASD**: Pan camera
 - **Mouse drag (left/middle)**: Pan camera
 - **Touch drag**: Pan camera
+
+### Gameplay
 - **Space**: Spread corruption
 - **P**: Place portal at Dark Lord position
 - **1**: Spawn Crawler minion (costs 20 essence)
 - **2**: Spawn Brute minion (costs 50 essence)
 - **3**: Spawn Stalker minion (costs 40 essence)
-- **World Button (UI)**: Switch between Corrupted/Human world view
 - **Tab**: Switch between Corrupted/Human world (debug)
+
+### UI Interaction Mode
+- **Building buttons (toolbar)**: Enter build mode for that building type
+- **Order buttons (toolbar)**: Enter order mode for that minion assignment
+- **Right-click**: Execute current mode (place building or issue order at click position)
+- **ESC**: Cancel current interaction mode
+- **World Button**: Switch between Corrupted/Human world view
+- **Evolve Button**: Open evolution modal (placeholder)
 
 ## Modifying Game Balance
 
@@ -157,6 +169,7 @@ CIVILIAN_HP, ANIMAL_HP
 GROUP_DARK_LORD, GROUP_CIVILIANS, GROUP_ANIMALS
 GROUP_KILLABLE, GROUP_MINIONS, GROUP_THREATS
 GROUP_ENEMIES, GROUP_POLICE, GROUP_MILITARY
+GROUP_BUILDINGS, GROUP_PORTALS, GROUP_CORRUPTION_NODES, GROUP_SPAWNING_PITS
 
 # Combat - Enemies
 POLICE_HP, POLICE_DAMAGE, POLICE_SPEED

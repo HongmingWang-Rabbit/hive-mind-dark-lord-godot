@@ -812,7 +812,8 @@ func _try_spawn_minion(type: Enums.MinionType) -> void:
 	container.add_child(minion)
 
 	# Position near Dark Lord with small random offset
-	var offset := Vector2(randf_range(-16, 16), randf_range(-16, 16))
+	var spawn_range := float(GameConstants.TILE_SIZE)
+	var offset := Vector2(randf_range(-spawn_range, spawn_range), randf_range(-spawn_range, spawn_range))
 	minion.global_position = _dark_lord.global_position + offset
 
 

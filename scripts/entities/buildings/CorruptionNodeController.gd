@@ -16,8 +16,8 @@ var world: Enums.WorldType
 func _ready() -> void:
 	_setup_collision_shape()
 	_setup_sprite()
-	add_to_group("buildings")
-	add_to_group("corruption_nodes")
+	add_to_group(GameConstants.GROUP_BUILDINGS)
+	add_to_group(GameConstants.GROUP_CORRUPTION_NODES)
 
 
 func setup(building_tile_pos: Vector2i, building_world: Enums.WorldType) -> void:

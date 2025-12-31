@@ -55,6 +55,12 @@ const SEPARATOR_WIDTH := 2
 #region Font
 const FONT_SIZE := 8
 const FONT_SIZE_HEADER := 8
+const FONT_SIZE_TITLE := 10
+#endregion
+
+#region Modal
+const MODAL_CONTENT_COLOR := Color(0.9, 0.9, 0.9, 1.0)
+const MODAL_OVERLAY_COLOR := Color(0.0, 0.0, 0.0, 0.5)
 #endregion
 
 #region Bottom Toolbar

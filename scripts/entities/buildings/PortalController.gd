@@ -23,7 +23,8 @@ func _ready() -> void:
 	_setup_collision_shape()
 	_setup_travel_area()
 	_setup_sprite()
-	add_to_group("portals")
+	add_to_group(GameConstants.GROUP_BUILDINGS)
+	add_to_group(GameConstants.GROUP_PORTALS)
 
 	travel_area.body_entered.connect(_on_travel_area_body_entered)
 	EventBus.portal_placed.connect(_on_portal_placed)
@@ -102,7 +103,7 @@ func _on_travel_area_body_entered(body: Node2D) -> void:
 	if _travel_cooldown > 0.0:
 		return
 
-	if not body.is_in_group("dark_lord"):
+	if not body.is_in_group(GameConstants.GROUP_DARK_LORD):
 		return
 
 	# Determine target world

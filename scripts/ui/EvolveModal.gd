@@ -31,10 +31,10 @@ func _apply_theme() -> void:
 
 	# Title
 	title_label.add_theme_color_override("font_color", UI.HEADER_COLOR)
-	title_label.add_theme_font_size_override("font_size", UI.FONT_SIZE + 2)
+	title_label.add_theme_font_size_override("font_size", UI.FONT_SIZE_TITLE)
 
 	# Content
-	content_label.add_theme_color_override("font_color", Color.WHITE)
+	content_label.add_theme_color_override("font_color", UI.MODAL_CONTENT_COLOR)
 	content_label.add_theme_font_size_override("font_size", UI.FONT_SIZE)
 
 	# Close button

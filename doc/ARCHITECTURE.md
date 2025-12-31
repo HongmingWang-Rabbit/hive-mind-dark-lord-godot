@@ -80,8 +80,11 @@ Enums.GameState {MENU, PLAYING, PAUSED, WON, LOST}
 
 # Units - Player
 Enums.MinionType {CRAWLER, BRUTE, STALKER}
-Enums.MinionAssignment {IDLE, ATTACKING, DEFENDING, SCOUTING}
+Enums.MinionAssignment {IDLE, ATTACKING, DEFENDING}
 Enums.Stance {AGGRESSIVE, HOLD, RETREAT}
+
+# Interaction
+Enums.InteractionMode {NONE, BUILD, ORDER}
 
 # Units - Human World
 Enums.HumanType {CIVILIAN, ANIMAL, POLICE, MILITARY, HEAVY, SPECIAL}
@@ -142,9 +145,14 @@ signal world_switched(new_world: Enums.WorldType)
 # Fog of War
 signal fog_update_requested(world: Enums.WorldType)
 
-# Toolbar
-signal building_requested(building_type: Enums.BuildingType)
-signal order_requested(assignment: Enums.MinionAssignment)
+# Interaction Mode
+signal interaction_mode_changed(mode: Enums.InteractionMode, data: Variant)
+signal build_mode_entered(building_type: Enums.BuildingType)
+signal order_mode_entered(assignment: Enums.MinionAssignment)
+signal interaction_cancelled()
+
+# UI
+signal evolve_modal_requested()
 
 # Resources
 signal essence_harvested(amount: int, source: Enums.HumanType)
@@ -174,6 +182,16 @@ GROUP_CIVILIANS         # "civilians"
 GROUP_ANIMALS           # "animals"
 GROUP_KILLABLE          # "killable" - entities Dark Lord can attack
 GROUP_MINIONS           # "minions"
+GROUP_THREATS           # "threats" - Dark Lord + minions (civilians flee from)
+GROUP_ENEMIES           # "enemies" - police, military, etc.
+GROUP_POLICE            # "police"
+GROUP_MILITARY          # "military"
+GROUP_HEAVY             # "heavy"
+GROUP_SPECIAL_FORCES    # "special_forces"
+GROUP_BUILDINGS         # "buildings" - all player buildings
+GROUP_PORTALS           # "portals"
+GROUP_CORRUPTION_NODES  # "corruption_nodes"
+GROUP_SPAWNING_PITS     # "spawning_pits"
 
 #region Combat - Dark Lord
 DARK_LORD_HP            # 100 - Dark Lord max health
@@ -285,11 +303,14 @@ Main (World.gd)
 │       │   └── WorldButton
 │       ├── SidePanel [VBoxContainer]
 │       ├── ContextPanel
-│       └── BottomToolbar [PanelContainer]
-│           └── HBox [HBoxContainer]
-│               ├── BuildingsSection (N:50, P:100, O:20)
-│               ├── OrdersSection (Atk, Sct, Def, Ret)
-│               └── EvolveSection (Evo)
+│       ├── BottomToolbar [PanelContainer]
+│       │   └── HBox [HBoxContainer]
+│       │       ├── BuildingsSection (N:50, P:100, O:20)
+│       │       ├── OrdersSection (Atk, Sct, Def, Ret)
+│       │       └── EvolveSection (Evo)
+│       └── ModeIndicator [Label] - Shows "Right-click to place/target"
+├── GameOverScreen (GameOverScreen.gd)
+├── EvolveModal (EvolveModal.gd) - Placeholder modal for evolution
 └── Camera2D (CameraController.gd)
 ```
 
@@ -324,14 +345,21 @@ Manages UI elements and player interactions. Applies visual theme from UITheme.g
 - **Threat display**: Updates when `EventBus.threat_level_changed` fires
 - **World switch button**: Toggles visibility between Corrupted/Human world (view only, does not move entities)
 - **Bottom toolbar**: Buildings, Orders, and Evolve sections with cost display and disabled states
+- **Mode indicator**: Shows "Right-click to place/target" when in build/order mode
 - **Themed styling**: All colors and styles applied programmatically from UITheme.gd
+
+### Interaction Mode System
+1. User clicks building/order button → enters build/order mode
+2. Mode indicator appears: "Right-click to place" or "Right-click to target"
+3. User right-clicks on map → action executed at clicked tile
+4. ESC cancels current mode
 
 ### Bottom Toolbar Sections
 | Section | Buttons | Emits |
 |---------|---------|-------|
-| Buildings | N:50, P:100, O:20 | `building_requested(BuildingType)` |
-| Orders | Atk, Sct, Def, Ret | `order_requested(MinionAssignment)`, `retreat_ordered()` |
-| Evolve | Evo | Placeholder for future |
+| Buildings | N:50, P:100, O:20 | `build_mode_entered(BuildingType)` |
+| Orders | Atk, Sct, Def, Ret | `order_mode_entered(MinionAssignment)`, `retreat_ordered()` |
+| Evolve | Evo | `evolve_modal_requested()` |
 
 Building buttons auto-disable when player can't afford the cost. Costs are retrieved via `_get_building_cost()` helper which routes to either `GameConstants.BUILDING_STATS` or `PortalData.PLACEMENT_COST`.
 
@@ -346,6 +374,8 @@ THREAT_LEVEL_NAMES      # ["None", "Police", "Military", "Heavy"]
 NODE_BTN_FORMAT         # "N:%d" (Corruption Node)
 PIT_BTN_FORMAT          # "P:%d" (Spawning Pit)
 PORTAL_BTN_FORMAT       # "O:%d" (Portal)
+MODE_BUILD              # "Right-click to place"
+MODE_ORDER              # "Right-click to target"
 ```
 
 ### Connected Signals
@@ -353,6 +383,8 @@ PORTAL_BTN_FORMAT       # "O:%d" (Portal)
 EventBus.corruption_changed
 EventBus.threat_level_changed
 EventBus.world_switched
+EventBus.interaction_mode_changed
+EventBus.interaction_cancelled
 Essence.essence_changed
 ```
 
@@ -396,6 +428,11 @@ TOP_BAR_SEPARATION, SIDE_PANEL_SEPARATION, SEPARATOR_WIDTH
 
 #region Font
 FONT_SIZE, FONT_SIZE_HEADER  # 8px for pixel art viewport
+FONT_SIZE_TITLE              # 10px for modal titles
+
+#region Modal
+MODAL_CONTENT_COLOR          # Color for modal text content
+MODAL_OVERLAY_COLOR          # Semi-transparent overlay color
 
 #region Bottom Toolbar
 TOOLBAR_HEIGHT              # 24px
@@ -693,6 +730,53 @@ Portal [StaticBody2D] (PortalController.gd)
 
 ---
 
+## Building Entities
+
+Player-placeable structures that provide various benefits.
+
+### File Organization
+```
+scripts/entities/buildings/
+├── PortalData.gd              # Portal constants
+├── PortalController.gd        # Portal behavior
+├── CorruptionNodeData.gd      # Node constants
+├── CorruptionNodeController.gd # Node behavior
+├── SpawningPitData.gd         # Pit constants
+└── SpawningPitController.gd   # Pit behavior
+
+scenes/entities/buildings/
+├── portal.tscn
+├── corruption_node.tscn
+└── spawning_pit.tscn
+```
+
+### Building Types
+| Type | Cost | Effect |
+|------|------|--------|
+| Portal | 20 | Travel between worlds when linked |
+| Corruption Node | 50 | +2 essence income per second |
+| Spawning Pit | 100 | Secondary minion spawn point |
+
+### Placement Flow
+1. Click building button → enters build mode
+2. Right-click on map tile → building placed
+3. ESC cancels build mode
+
+### Common Building Pattern
+All buildings follow the same pattern:
+```gdscript
+const Data := preload("res://scripts/entities/buildings/YourBuildingData.gd")
+
+func _ready() -> void:
+    add_to_group(GameConstants.GROUP_BUILDINGS)
+    add_to_group(GameConstants.GROUP_YOUR_BUILDING)
+
+func setup(tile_pos: Vector2i, world: Enums.WorldType) -> void:
+    # Position, register, emit signals
+```
+
+---
+
 ## Minion System
 
 Player-controlled units that follow the Dark Lord and attack enemies.
@@ -785,6 +869,38 @@ scenes/ui/
 ```gdscript
 EventBus.game_won  → _on_game_won()
 EventBus.game_lost → _on_game_lost()
+```
+
+---
+
+## Evolve Modal
+
+Placeholder modal for the minion evolution system.
+
+### File Organization
+```
+scripts/ui/
+└── EvolveModal.gd
+
+scenes/ui/
+└── evolve_modal.tscn
+```
+
+### Features
+- Opens when Evolve button clicked (`evolve_modal_requested` signal)
+- Pauses game while open
+- ESC or Close button to dismiss
+- Uses UITheme for consistent styling
+
+### Scene Structure
+```
+EvolveModal [CanvasLayer, layer=10, process_mode=ALWAYS]
+├── ColorRect - Semi-transparent overlay
+└── Panel [PanelContainer]
+    └── VBox [VBoxContainer]
+        ├── TitleLabel
+        ├── ContentLabel
+        └── CloseBtn
 ```
 
 ---

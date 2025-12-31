@@ -97,6 +97,15 @@ const GROUP_SPECIAL_FORCES := "special_forces"
 
 #endregion
 
+#region Entity Groups - Buildings
+
+const GROUP_BUILDINGS := "buildings"
+const GROUP_PORTALS := "portals"
+const GROUP_CORRUPTION_NODES := "corruption_nodes"
+const GROUP_SPAWNING_PITS := "spawning_pits"
+
+#endregion
+
 #region Units
 
 # Minion stats: {cost, upkeep, hp, damage, speed}
