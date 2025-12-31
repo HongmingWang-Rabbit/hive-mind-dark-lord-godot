@@ -7,7 +7,6 @@ var threat_level: Enums.ThreatLevel = Enums.ThreatLevel.NONE
 
 
 func _ready() -> void:
-	Essence.essence_depleted.connect(_on_essence_depleted)
 	EventBus.tile_corrupted.connect(_on_tile_corrupted)
 
 
@@ -68,11 +67,6 @@ func _update_threat_level() -> void:
 	if new_level != threat_level:
 		threat_level = new_level
 		EventBus.threat_level_changed.emit(threat_level)
-
-
-func _on_essence_depleted() -> void:
-	game_state = Enums.GameState.LOST
-	EventBus.game_lost.emit()
 
 
 func _on_tile_corrupted(_tile_pos: Vector2i) -> void:

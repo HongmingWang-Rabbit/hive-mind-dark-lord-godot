@@ -67,7 +67,6 @@ func _setup_sprite() -> void:
 	var max_dimension := maxf(texture_size.x, texture_size.y)
 	var scale_factor := desired_diameter / max_dimension
 	sprite.scale = Vector2(scale_factor, scale_factor)
-
 	_update_visual()
 
 

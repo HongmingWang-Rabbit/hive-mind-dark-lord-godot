@@ -68,3 +68,7 @@ const TOOLBAR_HEIGHT := 24
 const TOOLBAR_SECTION_SEPARATION := 4
 const TOOLBAR_LABEL_COLOR := Color(0.8, 0.7, 0.9, 1.0)
 #endregion
+
+#region Mode Indicator
+const MODE_INDICATOR_COLOR := Color(1.0, 1.0, 0.5, 1.0)  # Yellow for visibility
+#endregion

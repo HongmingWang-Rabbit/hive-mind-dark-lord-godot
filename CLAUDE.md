@@ -41,6 +41,11 @@ GameManager    → Game state, win/lose conditions
   const Data := preload("res://scripts/entities/dark_lord/DarkLordData.gd")
   var speed := Data.WANDER_SPEED
   ```
+- Building Data scripts also include sprite paths:
+  ```gdscript
+  const Data := preload("res://scripts/entities/buildings/PortalData.gd")
+  var texture := load(Data.SPRITE_PATH)
+  ```
 - Human entity data - Civilians and animals:
   ```gdscript
   const Data := preload("res://scripts/entities/humans/CivilianData.gd")
@@ -67,8 +72,8 @@ GameManager    → Game state, win/lose conditions
 
 1. **No hardcoded values** - Balance values in `GameConstants`, entity-specific config in `EntityData.gd`, UI in `UITheme.gd`
 2. **Data vs GameConstants separation**:
-   - **GameConstants**: Balance values (HP, damage, rewards), shared config (tile size, directions)
-   - **Data files**: Entity-specific config (collision, sprite scale, movement speed)
+   - **GameConstants**: Balance values (HP, damage, rewards), shared config (tile size, directions), visual constants (cursor preview)
+   - **Data files**: Entity-specific config (collision, sprite scale, movement speed, sprite paths)
 3. **Tile data separation** - Change `TileData` to swap tilesets
 4. **Entity data separation** - Each entity type has its own `Data.gd` for non-balance values
 5. **UI theme separation** - All UI colors/styles in `UITheme.gd`, applied programmatically
@@ -126,10 +131,11 @@ doc/            # Design docs
 
 ### Camera
 - **Arrow keys / WASD**: Pan camera
-- **Mouse drag (left/middle)**: Pan camera
+- **Middle-mouse drag**: Pan camera
 - **Touch drag**: Pan camera
 
 ### Gameplay
+- **Left-click**: Move Dark Lord to position (when no mode active)
 - **Space**: Spread corruption
 - **P**: Place portal at Dark Lord position
 - **1**: Spawn Crawler minion (costs 20 essence)
@@ -137,11 +143,20 @@ doc/            # Design docs
 - **3**: Spawn Stalker minion (costs 40 essence)
 - **Tab**: Switch between Corrupted/Human world (debug)
 
-### UI Interaction Mode
-- **Building buttons (toolbar)**: Enter build mode for that building type
-- **Order buttons (toolbar)**: Enter order mode for that minion assignment
-- **Right-click**: Execute current mode (place building or issue order at click position)
-- **ESC**: Cancel current interaction mode
+### UI Interaction Mode (Priority-Based)
+Input is handled in priority order:
+1. **UI buttons** (handled by Godot Control system)
+2. **ESC / Right-click**: Cancel current interaction mode
+3. **Left-click**: Execute current mode or move Dark Lord
+4. **Keyboard shortcuts**: Minion spawning, world switch
+
+- **Building buttons (toolbar)**: Enter build mode - cursor shows building preview
+- **Order buttons (toolbar)**: Enter order mode - cursor shows colored target indicator
+  - Attack (red), Defend (blue), Scout (green)
+- **Left-click (build mode)**: Place building at tile
+- **Left-click (order mode)**: Issue order to minions at position
+- **Left-click (no mode)**: Move Dark Lord to position
+- **Right-click / ESC**: Cancel current mode
 - **World Button**: Switch between Corrupted/Human world view
 - **Evolve Button**: Open evolution modal (placeholder)
 
@@ -204,6 +219,8 @@ KEY_PLACE_PORTAL, KEY_SWITCH_WORLD
 
 # Visuals
 CORRUPTION_COLOR
+CURSOR_PREVIEW_COLOR, CURSOR_PREVIEW_Z_INDEX
+ORDER_CURSOR_COLOR, ORDER_CURSOR_DEFEND_COLOR, ORDER_CURSOR_SCOUT_COLOR, ORDER_CURSOR_SIZE
 HUMAN_WORLD_TINT, CORRUPTED_WORLD_TINT
 CORRUPTED_PARTICLES_* (AMOUNT, LIFETIME, COLOR, DIRECTION, SPREAD, GRAVITY, VELOCITY, SCALE)
 PORTAL_CORRUPTION_RADIUS, PORTAL_TRAVEL_COOLDOWN
@@ -230,6 +247,8 @@ const CHAR_SKELETON := Vector2i(3, 7)
 - Use `Data.*` for entity-specific config (collision, movement, visuals)
 - Use `Tiles.*` for tile coordinates (preload TileData at top of script)
 - Use `Enums.*` for type safety
+- Use `_unhandled_input()` for world/game input (not `_input()`) so UI gets priority
+- Set `mouse_filter = MOUSE_FILTER_IGNORE` on full-screen UI containers so clicks pass through
 - Use `EventBus.*` for system communication
 - Use `randi_range()` instead of `randi() %` for random numbers
 - Call `GameManager.reset_game()` to reset all systems

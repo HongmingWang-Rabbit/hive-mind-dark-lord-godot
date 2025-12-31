@@ -18,6 +18,7 @@ signal building_destroyed(building_type: Enums.BuildingType, position: Vector2)
 # Command events
 signal attack_ordered(target_pos: Vector2, minion_percent: float, stance: Enums.Stance)
 signal retreat_ordered()
+signal dark_lord_move_ordered(target_pos: Vector2)
 
 # Game state events
 signal threat_level_changed(new_level: Enums.ThreatLevel)

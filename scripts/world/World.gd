@@ -20,6 +20,8 @@ const CorruptionNodeScene := preload("res://scenes/entities/buildings/corruption
 const SpawningPitScene := preload("res://scenes/entities/buildings/spawning_pit.tscn")
 const PortalScene := preload("res://scenes/entities/buildings/portal.tscn")
 const PortalData := preload("res://scripts/entities/buildings/PortalData.gd")
+const CorruptionNodeData := preload("res://scripts/entities/buildings/CorruptionNodeData.gd")
+const SpawningPitData := preload("res://scripts/entities/buildings/SpawningPitData.gd")
 
 # World containers
 @onready var human_world: Node2D = $HumanWorld
@@ -82,6 +84,11 @@ var _interaction_mode: Enums.InteractionMode = Enums.InteractionMode.NONE
 var _pending_building_type: Enums.BuildingType
 var _pending_order_assignment: Enums.MinionAssignment
 
+# Cursor preview
+var _cursor_preview: Sprite2D
+var _building_textures: Dictionary = {}
+var _order_cursor: Sprite2D
+
 
 func _ready() -> void:
 	_init_map_size()
@@ -93,6 +100,7 @@ func _ready() -> void:
 
 	_setup_world_visuals()
 	_setup_fog()
+	_setup_cursor_preview()
 	_spawn_dark_lord()
 	_spawn_human_world_entities()
 	_init_camera()
@@ -122,6 +130,59 @@ func _init_map_size() -> void:
 func _init_camera() -> void:
 	camera.set_map_bounds(map_width, map_height)
 	camera.center_on_tile(_initial_corruption_tile)
+
+
+func _setup_cursor_preview() -> void:
+	# Load building sprites from Data files
+	_building_textures[Enums.BuildingType.PORTAL] = load(PortalData.SPRITE_PATH)
+	_building_textures[Enums.BuildingType.CORRUPTION_NODE] = load(CorruptionNodeData.SPRITE_PATH)
+	_building_textures[Enums.BuildingType.SPAWNING_PIT] = load(SpawningPitData.SPRITE_PATH)
+
+	# Create sprite for cursor preview (buildings)
+	_cursor_preview = Sprite2D.new()
+	_cursor_preview.visible = false
+	_cursor_preview.z_index = GameConstants.CURSOR_PREVIEW_Z_INDEX
+	_cursor_preview.modulate = GameConstants.CURSOR_PREVIEW_COLOR
+	_cursor_preview.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	add_child(_cursor_preview)
+
+	# Create order cursor (simple circle texture)
+	_order_cursor = Sprite2D.new()
+	_order_cursor.visible = false
+	_order_cursor.z_index = GameConstants.CURSOR_PREVIEW_Z_INDEX
+	_order_cursor.texture = _create_order_cursor_texture()
+	add_child(_order_cursor)
+
+
+func _create_order_cursor_texture() -> Texture2D:
+	## Create a simple circle texture for order cursor
+	var size := int(GameConstants.ORDER_CURSOR_SIZE)
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var center := size / 2.0
+	var radius := size / 2.0 - 1.0
+
+	for x in size:
+		for y in size:
+			var dist := Vector2(x - center, y - center).length()
+			if dist <= radius and dist >= radius - 2.0:
+				# Draw ring
+				image.set_pixel(x, y, Color.WHITE)
+			elif dist < radius - 2.0:
+				# Fill center with semi-transparent
+				image.set_pixel(x, y, Color(1.0, 1.0, 1.0, 0.3))
+
+	return ImageTexture.create_from_image(image)
+
+
+func _get_building_data(building_type: Enums.BuildingType) -> RefCounted:
+	match building_type:
+		Enums.BuildingType.PORTAL:
+			return PortalData
+		Enums.BuildingType.CORRUPTION_NODE:
+			return CorruptionNodeData
+		Enums.BuildingType.SPAWNING_PIT:
+			return SpawningPitData
+	return null
 
 
 func _setup_world_visuals() -> void:
@@ -652,45 +713,88 @@ func _on_fog_update_requested(world: Enums.WorldType) -> void:
 
 #region Input
 
-func _input(event: InputEvent) -> void:
+func _unhandled_input(event: InputEvent) -> void:
+	## Priority-based input handling:
+	## 1. UI buttons (handled by Godot Control system before this)
+	## 2. ESC to cancel modes
+	## 3. Mouse clicks for world interaction
+	## 4. Keyboard shortcuts
+
+	# Spread corruption (debug)
 	if event.is_action_pressed("ui_accept"):
 		spread_corruption()
+		return
 
-	# Cancel interaction mode with ESC or right-click
+	# ESC cancels interaction mode (highest priority after UI)
 	if event.is_action_pressed("ui_cancel"):
 		if _interaction_mode != Enums.InteractionMode.NONE:
 			_cancel_interaction_mode()
 			get_viewport().set_input_as_handled()
 			return
 
-	# Handle mouse clicks for interaction mode
+	# Mouse clicks - check if over UI first
 	if event is InputEventMouseButton and event.pressed:
+		if _is_mouse_over_ui():
+			return
+
 		var mouse_event := event as InputEventMouseButton
-		if mouse_event.button_index == MOUSE_BUTTON_RIGHT:
-			if _interaction_mode != Enums.InteractionMode.NONE:
-				# Right-click confirms placement/order
-				var world_pos := _get_world_position_from_mouse(mouse_event.position)
-				_handle_interaction_click(world_pos)
-				get_viewport().set_input_as_handled()
-				return
+		if mouse_event.button_index == MOUSE_BUTTON_LEFT:
+			_handle_left_click(mouse_event)
+		elif mouse_event.button_index == MOUSE_BUTTON_RIGHT:
+			_handle_right_click(mouse_event)
+		return
+
+	# Keyboard shortcuts
+	if event is InputEventKey:
+		_handle_keyboard(event as InputEventKey)
+
+
+func _is_mouse_over_ui() -> bool:
+	## Check if mouse is currently over any UI control using Godot's built-in method
+	return get_viewport().gui_get_hovered_control() != null
+
+
+func _handle_left_click(event: InputEventMouseButton) -> void:
+	var world_pos := _get_world_position_from_mouse(event.position)
+
+	if _interaction_mode != Enums.InteractionMode.NONE:
+		# Left-click confirms placement/order
+		_handle_interaction_click(world_pos)
+		get_viewport().set_input_as_handled()
+	else:
+		# Left-click with no mode active = move Dark Lord
+		EventBus.dark_lord_move_ordered.emit(world_pos)
+		get_viewport().set_input_as_handled()
+
+
+func _handle_right_click(_event: InputEventMouseButton) -> void:
+	# Right-click cancels interaction mode
+	if _interaction_mode != Enums.InteractionMode.NONE:
+		_cancel_interaction_mode()
+		get_viewport().set_input_as_handled()
+
+
+func _handle_keyboard(event: InputEventKey) -> void:
+	if not event.pressed:
+		return
 
 	# Debug: Switch worlds
-	if event is InputEventKey and event.pressed and event.keycode == GameConstants.KEY_SWITCH_WORLD:
+	if event.keycode == GameConstants.KEY_SWITCH_WORLD:
 		var target := Enums.WorldType.HUMAN if WorldManager.active_world == Enums.WorldType.CORRUPTED else Enums.WorldType.CORRUPTED
 		WorldManager.switch_world(target)
+		return
 
 	# Minion spawning hotkeys
-	if event is InputEventKey and event.pressed:
-		match event.keycode:
-			GameConstants.KEY_SPAWN_CRAWLER:
-				_try_spawn_minion(Enums.MinionType.CRAWLER)
-			GameConstants.KEY_SPAWN_BRUTE:
-				_try_spawn_minion(Enums.MinionType.BRUTE)
-			GameConstants.KEY_SPAWN_STALKER:
-				_try_spawn_minion(Enums.MinionType.STALKER)
+	match event.keycode:
+		GameConstants.KEY_SPAWN_CRAWLER:
+			_try_spawn_minion(Enums.MinionType.CRAWLER)
+		GameConstants.KEY_SPAWN_BRUTE:
+			_try_spawn_minion(Enums.MinionType.BRUTE)
+		GameConstants.KEY_SPAWN_STALKER:
+			_try_spawn_minion(Enums.MinionType.STALKER)
 
 
-func _get_world_position_from_mouse(screen_pos: Vector2) -> Vector2:
+func _get_world_position_from_mouse(_screen_pos: Vector2) -> Vector2:
 	## Convert screen position to world position
 	return camera.get_global_mouse_position()
 
@@ -699,6 +803,23 @@ func _get_world_position_from_mouse(screen_pos: Vector2) -> Vector2:
 
 func _process(delta: float) -> void:
 	_process_enemy_spawning(delta)
+	_update_cursor_preview()
+
+
+func _update_cursor_preview() -> void:
+	if _interaction_mode == Enums.InteractionMode.NONE:
+		return
+
+	var mouse_pos := camera.get_global_mouse_position()
+
+	if _interaction_mode == Enums.InteractionMode.BUILD:
+		var tile_pos := Vector2i(mouse_pos / GameConstants.TILE_SIZE)
+		# Center sprite on tile (Sprite2D is centered by default)
+		var tile_size := float(GameConstants.TILE_SIZE)
+		_cursor_preview.position = Vector2(tile_pos) * tile_size + Vector2(tile_size, tile_size) / 2.0
+	elif _interaction_mode == Enums.InteractionMode.ORDER:
+		# Order cursor follows mouse directly (not snapped to tile)
+		_order_cursor.position = mouse_pos
 
 
 #region Enemy Spawning
@@ -832,6 +953,19 @@ func _on_build_mode_entered(building_type: Enums.BuildingType) -> void:
 	## Enter build placement mode - next click will place building
 	_interaction_mode = Enums.InteractionMode.BUILD
 	_pending_building_type = building_type
+
+	# Set texture and scale based on building data
+	var texture: Texture2D = _building_textures.get(building_type)
+	_cursor_preview.texture = texture
+	if texture:
+		var data := _get_building_data(building_type)
+		var texture_size := texture.get_size()
+		var desired_diameter: float = data.COLLISION_RADIUS * 2.0 * data.SPRITE_SIZE_RATIO
+		var max_dimension := maxf(texture_size.x, texture_size.y)
+		var scale_factor := desired_diameter / max_dimension
+		_cursor_preview.scale = Vector2(scale_factor, scale_factor)
+
+	_cursor_preview.visible = true
 	EventBus.interaction_mode_changed.emit(Enums.InteractionMode.BUILD, building_type)
 
 
@@ -839,11 +973,24 @@ func _on_order_mode_entered(assignment: Enums.MinionAssignment) -> void:
 	## Enter order mode - next click will issue order to that location
 	_interaction_mode = Enums.InteractionMode.ORDER
 	_pending_order_assignment = assignment
+
+	# Set order cursor color based on assignment type
+	match assignment:
+		Enums.MinionAssignment.ATTACKING:
+			_order_cursor.modulate = GameConstants.ORDER_CURSOR_COLOR
+		Enums.MinionAssignment.DEFENDING:
+			_order_cursor.modulate = GameConstants.ORDER_CURSOR_DEFEND_COLOR
+		Enums.MinionAssignment.IDLE:
+			_order_cursor.modulate = GameConstants.ORDER_CURSOR_SCOUT_COLOR
+
+	_order_cursor.visible = true
 	EventBus.interaction_mode_changed.emit(Enums.InteractionMode.ORDER, assignment)
 
 
 func _cancel_interaction_mode() -> void:
 	_interaction_mode = Enums.InteractionMode.NONE
+	_cursor_preview.visible = false
+	_order_cursor.visible = false
 	EventBus.interaction_cancelled.emit()
 
 
@@ -879,11 +1026,11 @@ func _execute_order(target_pos: Vector2) -> void:
 		Enums.MinionAssignment.ATTACKING:
 			HivePool.send_attack(target_pos, 1.0, Enums.Stance.AGGRESSIVE)
 		Enums.MinionAssignment.DEFENDING:
-			# Defend mode - minions stay near Dark Lord but prioritize combat
-			pass
+			# Defend mode - move to position and hold (attack only when attacked)
+			HivePool.send_attack(target_pos, 1.0, Enums.Stance.HOLD)
 		Enums.MinionAssignment.IDLE:
-			# Scout - just move to location (future implementation)
-			pass
+			# Scout - move to location then return to follow
+			HivePool.send_attack(target_pos, 1.0, Enums.Stance.RETREAT)
 
 #endregion
 

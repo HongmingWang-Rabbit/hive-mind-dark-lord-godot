@@ -46,8 +46,8 @@ const PIT_BTN_FORMAT := "P:%d"
 const PORTAL_BTN_FORMAT := "O:%d"
 
 # Mode indicator text
-const MODE_BUILD := "Right-click to place"
-const MODE_ORDER := "Right-click to target"
+const MODE_BUILD := "Click to place"
+const MODE_ORDER := "Click to target"
 
 
 func _ready() -> void:
@@ -86,6 +86,9 @@ func _apply_theme() -> void:
 
 	# Bottom toolbar
 	_apply_toolbar_theme()
+
+	# Mode indicator
+	_apply_label_theme(mode_indicator, UI.MODE_INDICATOR_COLOR, UI.HEADER_SHADOW_COLOR)
 
 
 func _create_panel_style(is_top: bool) -> StyleBoxFlat:

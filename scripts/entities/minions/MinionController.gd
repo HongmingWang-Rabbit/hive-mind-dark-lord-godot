@@ -4,7 +4,7 @@ extends CharacterBody2D
 
 const Data := preload("res://scripts/entities/minions/MinionData.gd")
 
-enum State { FOLLOW, ATTACK, WANDER }
+enum State { FOLLOW, ATTACK, WANDER, MOVE_TO }
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
@@ -20,6 +20,8 @@ var _state := State.FOLLOW
 var _current_target: Node2D = null
 var _targets_in_range: Array[Node2D] = []
 var _wander_offset := Vector2.ZERO
+var _order_target := Vector2.ZERO  # Target position for MOVE_TO state
+var _order_stance := Enums.Stance.AGGRESSIVE  # How to behave when reaching target
 
 
 func _ready() -> void:
@@ -28,13 +30,19 @@ func _ready() -> void:
 	_setup_collision_shape()
 	_setup_sprite_scale()
 	_setup_combat()
+	_connect_signals()
+
+
+func _connect_signals() -> void:
+	EventBus.attack_ordered.connect(_on_attack_ordered)
+	EventBus.retreat_ordered.connect(_on_retreat_ordered)
 
 
 func setup(type: Enums.MinionType) -> void:
 	## Call after instantiation to configure minion type
 	minion_type = type
 	var stats: Dictionary = GameConstants.MINION_STATS.get(type, {})
-	_hp = stats.get("hp", 10)
+	_hp = stats.get("hp", Data.DEFAULT_HP)
 
 
 func _setup_collision_shape() -> void:
@@ -77,6 +85,8 @@ func _physics_process(_delta: float) -> void:
 			_process_attack()
 		State.WANDER:
 			_process_wander()
+		State.MOVE_TO:
+			_process_move_to()
 
 
 func _process_follow() -> void:
@@ -87,7 +97,7 @@ func _process_follow() -> void:
 
 	var distance := global_position.distance_to(dark_lord.global_position)
 	var stats: Dictionary = GameConstants.MINION_STATS.get(minion_type, {})
-	var speed: float = stats.get("speed", 60.0)
+	var speed: float = stats.get("speed", Data.DEFAULT_SPEED)
 
 	if distance > Data.FOLLOW_DISTANCE:
 		# Move toward Dark Lord
@@ -113,7 +123,7 @@ func _process_wander() -> void:
 	var target := dark_lord.global_position + _wander_offset
 	var distance := global_position.distance_to(target)
 	var stats: Dictionary = GameConstants.MINION_STATS.get(minion_type, {})
-	var speed: float = stats.get("speed", 60.0) * Data.WANDER_SPEED_FACTOR
+	var speed: float = stats.get("speed", Data.DEFAULT_SPEED) * Data.WANDER_SPEED_FACTOR
 
 	# Check if Dark Lord moved too far
 	var lord_distance := global_position.distance_to(dark_lord.global_position)
@@ -147,7 +157,7 @@ func _process_attack() -> void:
 	# Move toward target if not in range
 	var distance := global_position.distance_to(_current_target.global_position)
 	var stats: Dictionary = GameConstants.MINION_STATS.get(minion_type, {})
-	var speed: float = stats.get("speed", 60.0)
+	var speed: float = stats.get("speed", Data.DEFAULT_SPEED)
 
 	if distance > Data.ATTACK_RANGE * Data.ATTACK_RANGE_FACTOR:
 		var direction := (_current_target.global_position - global_position).normalized()
@@ -160,6 +170,47 @@ func _process_attack() -> void:
 	else:
 		velocity = Vector2.ZERO
 		_try_attack()
+
+
+func _process_move_to() -> void:
+	## Move toward order target position
+	var distance := global_position.distance_to(_order_target)
+	var stats: Dictionary = GameConstants.MINION_STATS.get(minion_type, {})
+	var speed: float = stats.get("speed", Data.DEFAULT_SPEED)
+
+	# Check for enemies in range while moving (aggressive stance)
+	if _order_stance == Enums.Stance.AGGRESSIVE and _targets_in_range.size() > 0:
+		_update_attack_target()
+		if _current_target != null:
+			_state = State.ATTACK
+			return
+
+	# Arrived at target
+	if distance < Data.ORDER_ARRIVAL_DISTANCE:
+		velocity = Vector2.ZERO
+		# After arriving, stay aggressive or follow based on stance
+		match _order_stance:
+			Enums.Stance.AGGRESSIVE:
+				# Stay here and attack anything that comes in range
+				_state = State.WANDER
+				_wander_offset = Vector2.ZERO
+			Enums.Stance.HOLD:
+				# Stay at position
+				_state = State.WANDER
+				_wander_offset = Vector2.ZERO
+			Enums.Stance.RETREAT:
+				# Return to Dark Lord
+				_state = State.FOLLOW
+		return
+
+	# Move toward target
+	var direction := (_order_target - global_position).normalized()
+	velocity = direction * speed
+
+	if velocity.x != 0:
+		sprite.flip_h = velocity.x < 0
+
+	move_and_slide()
 
 
 func _pick_wander_offset() -> void:
@@ -196,7 +247,7 @@ func _try_attack() -> void:
 		return
 
 	var stats: Dictionary = GameConstants.MINION_STATS.get(minion_type, {})
-	var damage: int = stats.get("damage", 2)
+	var damage: int = stats.get("damage", Data.DEFAULT_DAMAGE)
 
 	if _current_target.has_method("take_damage"):
 		_current_target.take_damage(damage)
@@ -243,9 +294,21 @@ func _die() -> void:
 
 #region Orders
 
-func retreat() -> void:
+func _on_attack_ordered(target_pos: Vector2, _percent: float, stance: Enums.Stance) -> void:
+	## Called when attack order is issued - move to target position
+	_order_target = target_pos
+	_order_stance = stance
+	_state = State.MOVE_TO
+
+
+func _on_retreat_ordered() -> void:
 	## Called when retreat order is issued - return to following Dark Lord
 	_current_target = null
 	_state = State.FOLLOW
+
+
+func retreat() -> void:
+	## Public method for retreat (called by World.gd)
+	_on_retreat_ordered()
 
 #endregion

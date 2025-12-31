@@ -29,6 +29,7 @@ GameManager (uses all above, including WorldManager)
 
 **Data files** (preload) contain:
 - Entity-specific configuration (collision radius, sprite scale, movement speed)
+- Sprite asset paths (e.g., `SPRITE_PATH := "res://assets/sprites/buildings/dark_portal.png"`)
 - Values specific to how an entity looks/moves, not its combat stats
 - Non-balance values that define entity behavior
 
@@ -133,6 +134,7 @@ signal military_portal_opened(tile_pos: Vector2i)  # AI-controlled, player canno
 # Commands
 signal attack_ordered(target_pos: Vector2, minion_percent: float, stance: Enums.Stance)
 signal retreat_ordered()
+signal dark_lord_move_ordered(target_pos: Vector2)  # Player clicked to move Dark Lord
 
 # Game State
 signal threat_level_changed(new_level: Enums.ThreatLevel)
@@ -252,6 +254,14 @@ KEY_SWITCH_WORLD        # Key for debug world switching (KEY_TAB)
 #region Corruption Visual
 CORRUPTION_COLOR        # Color for corruption overlay
 
+#region Cursor Preview
+CURSOR_PREVIEW_COLOR    # Color(1.0, 1.0, 1.0, 0.7) - semi-transparent preview
+CURSOR_PREVIEW_Z_INDEX  # 50 - above world, below UI
+ORDER_CURSOR_COLOR      # Color(1.0, 0.3, 0.3, 0.8) - red for attack orders
+ORDER_CURSOR_DEFEND_COLOR  # Color(0.3, 0.5, 1.0, 0.8) - blue for defend
+ORDER_CURSOR_SCOUT_COLOR   # Color(0.3, 1.0, 0.5, 0.8) - green for scout
+ORDER_CURSOR_SIZE       # 12.0 - diameter of order cursor circle
+
 #region Directions
 ORTHOGONAL_DIRS         # [Vector2i] - 4 cardinal directions
 ALL_DIRS                # [Vector2i] - 8 directions including diagonals
@@ -308,7 +318,7 @@ Main (World.gd)
 │       │       ├── BuildingsSection (N:50, P:100, O:20)
 │       │       ├── OrdersSection (Atk, Sct, Def, Ret)
 │       │       └── EvolveSection (Evo)
-│       └── ModeIndicator [Label] - Shows "Right-click to place/target"
+│       └── ModeIndicator [Label] - Shows "Click to place/target"
 ├── GameOverScreen (GameOverScreen.gd)
 ├── EvolveModal (EvolveModal.gd) - Placeholder modal for evolution
 └── Camera2D (CameraController.gd)
@@ -339,20 +349,41 @@ Both worlds have identical terrain layout but **separate entities and fog**. Eac
 
 Manages UI elements and player interactions. Applies visual theme from UITheme.gd.
 
+### Mouse Filter Configuration
+The HUD root Control and non-interactive labels use `mouse_filter = MOUSE_FILTER_IGNORE` (2) so mouse clicks pass through to the world below. Only interactive elements (buttons, panels) capture mouse events.
+
+```gdscript
+# In hud.tscn - root HUD node
+mouse_filter = 2  # MOUSE_FILTER_IGNORE - clicks pass through
+
+# Interactive elements (buttons, panels) use default MOUSE_FILTER_STOP
+```
+
 ### Features
 - **Essence display**: Updates when `Essence.essence_changed` fires
 - **Corruption display**: Updates when `EventBus.corruption_changed` fires
 - **Threat display**: Updates when `EventBus.threat_level_changed` fires
 - **World switch button**: Toggles visibility between Corrupted/Human world (view only, does not move entities)
 - **Bottom toolbar**: Buildings, Orders, and Evolve sections with cost display and disabled states
-- **Mode indicator**: Shows "Right-click to place/target" when in build/order mode
+- **Mode indicator**: Shows "Click to place/target" when in build/order mode (mouse_filter = IGNORE)
 - **Themed styling**: All colors and styles applied programmatically from UITheme.gd
 
 ### Interaction Mode System
+Priority-based input handling (World.gd `_unhandled_input`):
+1. **UI buttons** (handled by Godot Control system - highest priority)
+2. **ESC** cancels current interaction mode
+3. **Mouse clicks** (with UI overlap check via `_is_mouse_over_ui()`)
+4. **Keyboard shortcuts** (minion spawning, world switch)
+
+Flow:
 1. User clicks building/order button → enters build/order mode
-2. Mode indicator appears: "Right-click to place" or "Right-click to target"
-3. User right-clicks on map → action executed at clicked tile
-4. ESC cancels current mode
+2. Mode indicator appears: "Click to place" or "Click to target"
+3. Cursor preview: building sprite (build mode) or colored circle (order mode)
+   - Build cursor: scaled by `Data.SPRITE_SIZE_RATIO`, snaps to tile
+   - Order cursor: `ORDER_CURSOR_COLOR` (attack), `ORDER_CURSOR_DEFEND_COLOR`, `ORDER_CURSOR_SCOUT_COLOR`
+4. User left-clicks on map → action executed at clicked position
+5. Left-click with no mode → moves Dark Lord to position
+6. ESC or right-click cancels current mode
 
 ### Bottom Toolbar Sections
 | Section | Buttons | Emits |
@@ -374,8 +405,8 @@ THREAT_LEVEL_NAMES      # ["None", "Police", "Military", "Heavy"]
 NODE_BTN_FORMAT         # "N:%d" (Corruption Node)
 PIT_BTN_FORMAT          # "P:%d" (Spawning Pit)
 PORTAL_BTN_FORMAT       # "O:%d" (Portal)
-MODE_BUILD              # "Right-click to place"
-MODE_ORDER              # "Right-click to target"
+MODE_BUILD              # "Click to place"
+MODE_ORDER              # "Click to target"
 ```
 
 ### Connected Signals
@@ -565,7 +596,8 @@ const Data := preload("res://scripts/entities/dark_lord/DarkLordData.gd")
 # DarkLordData.gd constants (entity-specific, non-balance):
 COLLISION_RADIUS    # float - physics collision size (also drives sprite scale)
 SPRITE_SIZE_RATIO   # float - sprite size relative to collision (1.0 = match)
-WANDER_SPEED        # float - movement speed
+WANDER_SPEED        # float - movement speed when wandering
+MOVE_SPEED          # float - movement speed when player commands (faster)
 WANDER_INTERVAL_MIN # float - min wait between moves
 WANDER_INTERVAL_MAX # float - max wait between moves
 SIGHT_RANGE         # int - tiles visible around Dark Lord (fog of war)
@@ -575,11 +607,13 @@ SIGHT_RANGE         # int - tiles visible around Dark Lord (fog of war)
 ```
 
 ### Current Behavior
-- Wanders randomly in 8 directions
-- Moves one tile at a time
-- Waits random interval between moves
+- **Click-to-move**: Player left-clicks to move Dark Lord to position (uses `MOVE_SPEED`)
+- Wanders randomly in 8 directions when idle (uses `WANDER_SPEED`)
+- Moves one tile at a time when wandering
+- Waits random interval between wandering moves
 - Reveals fog in sight range when moving (via `get_visible_tiles()`)
 - **Auto-attacks** killable entities (civilians, animals) in range
+- Listens to `EventBus.dark_lord_move_ordered` signal for player commands
 
 ### Combat System
 - **AttackRange Area2D** detects entities in `GROUP_KILLABLE` group
@@ -696,6 +730,7 @@ scenes/entities/buildings/
 const Data := preload("res://scripts/entities/buildings/PortalData.gd")
 
 # PortalData.gd constants:
+SPRITE_PATH             # string - path to sprite asset
 COLLISION_RADIUS        # float - physics collision size
 TRAVEL_TRIGGER_RADIUS   # float - area for travel detection
 SPRITE_SIZE_RATIO       # float - sprite size relative to collision
@@ -759,8 +794,9 @@ scenes/entities/buildings/
 
 ### Placement Flow
 1. Click building button → enters build mode
-2. Right-click on map tile → building placed
-3. ESC cancels build mode
+2. Cursor preview shows building sprite following mouse
+3. Left-click on map tile → building placed
+4. ESC or right-click cancels build mode
 
 ### Common Building Pattern
 All buildings follow the same pattern:
@@ -797,16 +833,46 @@ scenes/entities/minions/
 - Spawned near Dark Lord's position
 - Added to HivePool for tracking
 
+### Data Script Constants
+```gdscript
+const Data := preload("res://scripts/entities/minions/MinionData.gd")
+
+# MinionData.gd constants:
+COLLISION_RADIUS          # float - physics collision size
+SPRITE_SIZE_RATIO         # float - sprite size relative to collision
+FOLLOW_DISTANCE           # float - stay this far from Dark Lord
+FOLLOW_DISTANCE_THRESHOLD # float - multiplier for when to start following again
+ATTACK_RANGE              # float - range to attack enemies
+ATTACK_RANGE_FACTOR       # float - move closer before attacking
+ATTACK_COOLDOWN           # float - seconds between attacks
+WANDER_RADIUS             # float - wander radius near Dark Lord
+WANDER_SPEED_FACTOR       # float - wander speed as fraction of full speed
+WANDER_ARRIVAL_DISTANCE   # float - consider arrived when this close
+WANDER_DIRECTION_CHANGE_CHANCE  # int - 1 in N frames to pick new target
+ORDER_ARRIVAL_DISTANCE    # float - arrival distance for player orders
+DEFAULT_HP                # int - fallback if MINION_STATS missing
+DEFAULT_SPEED             # float - fallback if MINION_STATS missing
+DEFAULT_DAMAGE            # int - fallback if MINION_STATS missing
+```
+
 ### Behavior States
 | State | Description |
 |-------|-------------|
 | FOLLOW | Move toward Dark Lord, maintain follow distance |
 | ATTACK | Chase and attack enemies in range |
 | WANDER | Idle movement near Dark Lord |
+| MOVE_TO | Moving to player-ordered position |
+
+### Order System
+- Listens to `EventBus.attack_ordered` and `EventBus.retreat_ordered` signals
+- Order types with stance behavior:
+  - **AGGRESSIVE**: Attack enemies while moving, stay at destination
+  - **HOLD**: Move to position, stay there, attack only if attacked
+  - **RETREAT**: Move to position, then return to following Dark Lord
 
 ### Combat
 - Auto-attack entities in GROUP_KILLABLE
-- Damage/speed from GameConstants.MINION_STATS
+- Damage/speed from GameConstants.MINION_STATS (with Data fallbacks)
 - On death: removed from HivePool, upkeep removed
 
 ---
@@ -862,8 +928,8 @@ scenes/ui/
 
 ### Triggers
 - **Win**: Corruption reaches WIN_THRESHOLD (80%)
-- **Lose - Essence**: Essence depleted
 - **Lose - Dark Lord**: Dark Lord HP reaches 0
+- **Lose - Corruption**: All corruption cleared in Dark World
 
 ### Connected Signals
 ```gdscript

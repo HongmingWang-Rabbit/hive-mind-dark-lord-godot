@@ -175,7 +175,7 @@ const CAMERA_CENTER := Vector2(VIEWPORT_WIDTH / 2.0, VIEWPORT_HEIGHT / 2.0)
 const TILE_SIZE := 16
 const CAMERA_PAN_SPEED := 200.0
 const CAMERA_EDGE_PADDING := 32  # Pixels beyond map edges camera can see
-const CAMERA_DRAG_BUTTONS: Array[MouseButton] = [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE]
+const CAMERA_DRAG_BUTTONS: Array[MouseButton] = [MOUSE_BUTTON_MIDDLE]  # Left-click used for actions
 
 # Keyboard pan keys (physical key codes for consistent layout across keyboard types)
 const CAMERA_PAN_LEFT_KEYS: Array[Key] = [KEY_A]
@@ -200,6 +200,19 @@ const KEY_SPAWN_STALKER: Key = KEY_3
 #region Corruption Visual
 
 const CORRUPTION_COLOR := Color(0.6, 0.2, 0.8, 0.7)
+
+#endregion
+
+#region Cursor Preview
+
+const CURSOR_PREVIEW_COLOR := Color(1.0, 1.0, 1.0, 0.7)  # Semi-transparent white
+const CURSOR_PREVIEW_Z_INDEX := 50  # Above world, below UI
+
+# Order cursor (attack/defend targeting)
+const ORDER_CURSOR_COLOR := Color(1.0, 0.3, 0.3, 0.8)  # Red for attack orders
+const ORDER_CURSOR_DEFEND_COLOR := Color(0.3, 0.5, 1.0, 0.8)  # Blue for defend orders
+const ORDER_CURSOR_SCOUT_COLOR := Color(0.3, 1.0, 0.5, 0.8)  # Green for scout orders
+const ORDER_CURSOR_SIZE := 12.0  # Diameter of order cursor circle
 
 #endregion
 

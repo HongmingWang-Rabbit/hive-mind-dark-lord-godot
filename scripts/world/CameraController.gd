@@ -16,7 +16,8 @@ func _process(delta: float) -> void:
 	_handle_keyboard_pan(delta)
 
 
-func _input(event: InputEvent) -> void:
+func _unhandled_input(event: InputEvent) -> void:
+	## Use _unhandled_input so UI gets priority
 	_handle_drag(event)
 
 

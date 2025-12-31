@@ -16,6 +16,7 @@ const FogUtils := preload("res://scripts/utils/fog_utils.gd")
 # Current movement target
 var _target_position: Vector2
 var _is_moving := false
+var _is_player_commanded := false  # True when moving to player-clicked position
 
 # Combat
 var _hp: int
@@ -30,7 +31,12 @@ func _ready() -> void:
 	_setup_collision_shape()
 	_setup_sprite_scale()
 	_setup_combat()
+	_connect_signals()
 	_start_wander_timer()
+
+
+func _connect_signals() -> void:
+	EventBus.dark_lord_move_ordered.connect(_on_move_ordered)
 
 
 func _setup_collision_shape() -> void:
@@ -55,13 +61,16 @@ func _physics_process(_delta: float) -> void:
 
 func _move_toward_target() -> void:
 	var direction := (_target_position - global_position).normalized()
-	velocity = direction * Data.WANDER_SPEED
+	var speed := Data.MOVE_SPEED if _is_player_commanded else Data.WANDER_SPEED
+	velocity = direction * speed
 
 	# Check if reached target
-	if global_position.distance_to(_target_position) < Data.WANDER_SPEED * get_physics_process_delta_time():
+	var arrival_distance := speed * get_physics_process_delta_time()
+	if global_position.distance_to(_target_position) < arrival_distance:
 		global_position = _target_position
 		velocity = Vector2.ZERO
 		_is_moving = false
+		_is_player_commanded = false
 		_start_wander_timer()
 		# Update fog when reaching new position
 		EventBus.fog_update_requested.emit(WorldManager.active_world)
@@ -70,6 +79,14 @@ func _move_toward_target() -> void:
 		if velocity.x != 0:
 			sprite.flip_h = velocity.x < 0
 		move_and_slide()
+
+
+func _on_move_ordered(target_pos: Vector2) -> void:
+	## Player clicked to move Dark Lord to target position
+	wander_timer.stop()
+	_target_position = target_pos
+	_is_moving = true
+	_is_player_commanded = true
 
 
 func _pick_new_wander_target() -> void:

@@ -17,3 +17,11 @@ const WANDER_RADIUS := 24.0  # Wander radius when idle near Dark Lord
 const WANDER_SPEED_FACTOR := 0.5  # Wander at this fraction of full speed
 const WANDER_ARRIVAL_DISTANCE := 4.0  # Consider arrived when this close
 const WANDER_DIRECTION_CHANGE_CHANCE := 60  # 1 in N frames to pick new wander target
+
+# Order behavior
+const ORDER_ARRIVAL_DISTANCE := 8.0  # Consider arrived at order target when this close
+
+# Default fallbacks (used if GameConstants.MINION_STATS missing entry)
+const DEFAULT_HP := 10
+const DEFAULT_SPEED := 60.0
+const DEFAULT_DAMAGE := 2

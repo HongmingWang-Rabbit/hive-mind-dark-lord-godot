@@ -7,6 +7,7 @@ extends RefCounted
 const COLLISION_RADIUS := 10.0
 const SPRITE_SIZE_RATIO := 1.2  # Sprite visual size relative to collision diameter (1.0 = match collision)
 const WANDER_SPEED := 30.0
+const MOVE_SPEED := 80.0  # Speed when player commands movement (faster than wander)
 const WANDER_INTERVAL_MIN := 1.0
 const WANDER_INTERVAL_MAX := 3.0
 
