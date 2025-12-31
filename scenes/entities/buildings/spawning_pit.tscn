@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=4 uid="uid://spawning_pit_scene"]
+
+[ext_resource type="Script" path="res://scripts/entities/buildings/SpawningPitController.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://claey8koq7by0" path="res://resources/dungeon_tileset.png" id="2_tileset"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pit"]
+atlas = ExtResource("2_tileset")
+region = Rect2(80, 96, 16, 16)
+
+[node name="SpawningPit" type="StaticBody2D"]
+script = ExtResource("1_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = SubResource("AtlasTexture_pit")
+texture_filter = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]

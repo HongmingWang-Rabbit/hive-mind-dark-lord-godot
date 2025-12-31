@@ -239,3 +239,13 @@ func _die() -> void:
 	queue_free()
 
 #endregion
+
+
+#region Orders
+
+func retreat() -> void:
+	## Called when retreat order is issued - return to following Dark Lord
+	_current_target = null
+	_state = State.FOLLOW
+
+#endregion

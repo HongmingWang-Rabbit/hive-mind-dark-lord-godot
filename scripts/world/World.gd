@@ -16,6 +16,10 @@ const CivilianScene := preload("res://scenes/entities/humans/civilian.tscn")
 const AnimalScene := preload("res://scenes/entities/humans/animal.tscn")
 const MinionScene := preload("res://scenes/entities/minions/minion.tscn")
 const EnemyScene := preload("res://scenes/entities/enemies/enemy.tscn")
+const CorruptionNodeScene := preload("res://scenes/entities/buildings/corruption_node.tscn")
+const SpawningPitScene := preload("res://scenes/entities/buildings/spawning_pit.tscn")
+const PortalScene := preload("res://scenes/entities/buildings/portal.tscn")
+const PortalData := preload("res://scripts/entities/buildings/PortalData.gd")
 
 # World containers
 @onready var human_world: Node2D = $HumanWorld
@@ -92,6 +96,8 @@ func _ready() -> void:
 	EventBus.world_switched.connect(_on_world_switched)
 	EventBus.fog_update_requested.connect(_on_fog_update_requested)
 	EventBus.threat_level_changed.connect(_on_threat_level_changed)
+	EventBus.building_requested.connect(_on_building_requested)
+	EventBus.retreat_ordered.connect(_on_retreat_ordered)
 	GameManager.start_game()
 
 	# Initial fog update for starting world
@@ -786,5 +792,80 @@ func _get_dark_lord_world() -> Enums.WorldType:
 	if _dark_lord.get_parent() == corrupted_entities:
 		return Enums.WorldType.CORRUPTED
 	return Enums.WorldType.HUMAN
+
+#endregion
+
+
+#region Building Placement
+
+func _on_building_requested(building_type: Enums.BuildingType) -> void:
+	## Handle building placement request from toolbar
+	if _dark_lord == null:
+		return
+
+	var dark_lord_world := _get_dark_lord_world()
+	var tile_pos := Vector2i(_dark_lord.global_position / GameConstants.TILE_SIZE)
+
+	match building_type:
+		Enums.BuildingType.CORRUPTION_NODE:
+			_try_place_corruption_node(tile_pos, dark_lord_world)
+		Enums.BuildingType.SPAWNING_PIT:
+			_try_place_spawning_pit(tile_pos, dark_lord_world)
+		Enums.BuildingType.PORTAL:
+			_try_place_portal(tile_pos, dark_lord_world)
+
+
+func _try_place_corruption_node(tile_pos: Vector2i, world: Enums.WorldType) -> void:
+	var stats: Dictionary = GameConstants.BUILDING_STATS.get(Enums.BuildingType.CORRUPTION_NODE, {})
+	var cost: int = stats.get("cost", 50)
+
+	if not Essence.spend(cost):
+		return
+
+	var node := CorruptionNodeScene.instantiate()
+	var container := get_entities_container(world)
+	container.add_child(node)
+	node.setup(tile_pos, world)
+
+
+func _try_place_spawning_pit(tile_pos: Vector2i, world: Enums.WorldType) -> void:
+	var stats: Dictionary = GameConstants.BUILDING_STATS.get(Enums.BuildingType.SPAWNING_PIT, {})
+	var cost: int = stats.get("cost", 100)
+
+	if not Essence.spend(cost):
+		return
+
+	var pit := SpawningPitScene.instantiate()
+	var container := get_entities_container(world)
+	container.add_child(pit)
+	pit.setup(tile_pos, world)
+
+
+func _try_place_portal(tile_pos: Vector2i, world: Enums.WorldType) -> void:
+	# Check if portal already exists at this position
+	if WorldManager.has_portal_at(tile_pos, world):
+		return
+
+	if not Essence.spend(PortalData.PLACEMENT_COST):
+		return
+
+	var portal := PortalScene.instantiate()
+	var container := get_entities_container(world)
+	container.add_child(portal)
+	portal.setup(tile_pos, world)
+
+#endregion
+
+
+#region Minion Orders
+
+func _on_retreat_ordered() -> void:
+	## Make all minions return to following the Dark Lord
+	HivePool.recall_attackers()
+	# Signal all minions to return to follow state
+	var minions := get_tree().get_nodes_in_group(GameConstants.GROUP_MINIONS)
+	for minion in minions:
+		if minion.has_method("retreat"):
+			minion.retreat()
 
 #endregion
