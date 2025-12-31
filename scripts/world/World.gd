@@ -77,6 +77,11 @@ var _military_spawn_timer: float = 0.0
 var _heavy_spawn_timer: float = 0.0
 var _current_threat_level: Enums.ThreatLevel = Enums.ThreatLevel.NONE
 
+# Interaction mode
+var _interaction_mode: Enums.InteractionMode = Enums.InteractionMode.NONE
+var _pending_building_type: Enums.BuildingType
+var _pending_order_assignment: Enums.MinionAssignment
+
 
 func _ready() -> void:
 	_init_map_size()
@@ -96,7 +101,8 @@ func _ready() -> void:
 	EventBus.world_switched.connect(_on_world_switched)
 	EventBus.fog_update_requested.connect(_on_fog_update_requested)
 	EventBus.threat_level_changed.connect(_on_threat_level_changed)
-	EventBus.building_requested.connect(_on_building_requested)
+	EventBus.build_mode_entered.connect(_on_build_mode_entered)
+	EventBus.order_mode_entered.connect(_on_order_mode_entered)
 	EventBus.retreat_ordered.connect(_on_retreat_ordered)
 	GameManager.start_game()
 
@@ -650,6 +656,24 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_accept"):
 		spread_corruption()
 
+	# Cancel interaction mode with ESC or right-click
+	if event.is_action_pressed("ui_cancel"):
+		if _interaction_mode != Enums.InteractionMode.NONE:
+			_cancel_interaction_mode()
+			get_viewport().set_input_as_handled()
+			return
+
+	# Handle mouse clicks for interaction mode
+	if event is InputEventMouseButton and event.pressed:
+		var mouse_event := event as InputEventMouseButton
+		if mouse_event.button_index == MOUSE_BUTTON_RIGHT:
+			if _interaction_mode != Enums.InteractionMode.NONE:
+				# Right-click confirms placement/order
+				var world_pos := _get_world_position_from_mouse(mouse_event.position)
+				_handle_interaction_click(world_pos)
+				get_viewport().set_input_as_handled()
+				return
+
 	# Debug: Switch worlds
 	if event is InputEventKey and event.pressed and event.keycode == GameConstants.KEY_SWITCH_WORLD:
 		var target := Enums.WorldType.HUMAN if WorldManager.active_world == Enums.WorldType.CORRUPTED else Enums.WorldType.CORRUPTED
@@ -664,6 +688,11 @@ func _input(event: InputEvent) -> void:
 				_try_spawn_minion(Enums.MinionType.BRUTE)
 			GameConstants.KEY_SPAWN_STALKER:
 				_try_spawn_minion(Enums.MinionType.STALKER)
+
+
+func _get_world_position_from_mouse(screen_pos: Vector2) -> Vector2:
+	## Convert screen position to world position
+	return camera.get_global_mouse_position()
 
 #endregion
 
@@ -796,28 +825,76 @@ func _get_dark_lord_world() -> Enums.WorldType:
 #endregion
 
 
-#region Building Placement
+#region Interaction Mode
 
-func _on_building_requested(building_type: Enums.BuildingType) -> void:
-	## Handle building placement request from toolbar
-	if _dark_lord == null:
-		return
+func _on_build_mode_entered(building_type: Enums.BuildingType) -> void:
+	## Enter build placement mode - next click will place building
+	_interaction_mode = Enums.InteractionMode.BUILD
+	_pending_building_type = building_type
+	EventBus.interaction_mode_changed.emit(Enums.InteractionMode.BUILD, building_type)
 
-	var dark_lord_world := _get_dark_lord_world()
-	var tile_pos := Vector2i(_dark_lord.global_position / GameConstants.TILE_SIZE)
 
-	match building_type:
+func _on_order_mode_entered(assignment: Enums.MinionAssignment) -> void:
+	## Enter order mode - next click will issue order to that location
+	_interaction_mode = Enums.InteractionMode.ORDER
+	_pending_order_assignment = assignment
+	EventBus.interaction_mode_changed.emit(Enums.InteractionMode.ORDER, assignment)
+
+
+func _cancel_interaction_mode() -> void:
+	_interaction_mode = Enums.InteractionMode.NONE
+	EventBus.interaction_cancelled.emit()
+
+
+func _handle_interaction_click(world_pos: Vector2) -> void:
+	## Handle a click in interaction mode
+	var tile_pos := Vector2i(world_pos / GameConstants.TILE_SIZE)
+
+	match _interaction_mode:
+		Enums.InteractionMode.BUILD:
+			_execute_build(tile_pos)
+		Enums.InteractionMode.ORDER:
+			_execute_order(world_pos)
+
+	_cancel_interaction_mode()
+
+
+func _execute_build(tile_pos: Vector2i) -> void:
+	## Place building at clicked tile
+	var world := WorldManager.active_world
+
+	match _pending_building_type:
 		Enums.BuildingType.CORRUPTION_NODE:
-			_try_place_corruption_node(tile_pos, dark_lord_world)
+			_try_place_corruption_node(tile_pos, world)
 		Enums.BuildingType.SPAWNING_PIT:
-			_try_place_spawning_pit(tile_pos, dark_lord_world)
+			_try_place_spawning_pit(tile_pos, world)
 		Enums.BuildingType.PORTAL:
-			_try_place_portal(tile_pos, dark_lord_world)
+			_try_place_portal(tile_pos, world)
 
+
+func _execute_order(target_pos: Vector2) -> void:
+	## Issue order to minions at target position
+	match _pending_order_assignment:
+		Enums.MinionAssignment.ATTACKING:
+			HivePool.send_attack(target_pos, 1.0, Enums.Stance.AGGRESSIVE)
+		Enums.MinionAssignment.DEFENDING:
+			# Defend mode - minions stay near Dark Lord but prioritize combat
+			pass
+		Enums.MinionAssignment.IDLE:
+			# Scout - just move to location (future implementation)
+			pass
+
+#endregion
+
+
+#region Building Placement
 
 func _try_place_corruption_node(tile_pos: Vector2i, world: Enums.WorldType) -> void:
 	var stats: Dictionary = GameConstants.BUILDING_STATS.get(Enums.BuildingType.CORRUPTION_NODE, {})
 	var cost: int = stats.get("cost", 50)
+
+	if not Essence.can_afford(cost):
+		return
 
 	if not Essence.spend(cost):
 		return
@@ -832,6 +909,9 @@ func _try_place_spawning_pit(tile_pos: Vector2i, world: Enums.WorldType) -> void
 	var stats: Dictionary = GameConstants.BUILDING_STATS.get(Enums.BuildingType.SPAWNING_PIT, {})
 	var cost: int = stats.get("cost", 100)
 
+	if not Essence.can_afford(cost):
+		return
+
 	if not Essence.spend(cost):
 		return
 
@@ -844,6 +924,9 @@ func _try_place_spawning_pit(tile_pos: Vector2i, world: Enums.WorldType) -> void
 func _try_place_portal(tile_pos: Vector2i, world: Enums.WorldType) -> void:
 	# Check if portal already exists at this position
 	if WorldManager.has_portal_at(tile_pos, world):
+		return
+
+	if not Essence.can_afford(PortalData.PLACEMENT_COST):
 		return
 
 	if not Essence.spend(PortalData.PLACEMENT_COST):

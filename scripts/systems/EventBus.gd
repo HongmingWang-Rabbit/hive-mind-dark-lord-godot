@@ -36,3 +36,12 @@ signal fog_update_requested(world: Enums.WorldType)
 # Toolbar events
 signal building_requested(building_type: Enums.BuildingType)
 signal order_requested(assignment: Enums.MinionAssignment)
+
+# Interaction mode events
+signal interaction_mode_changed(mode: Enums.InteractionMode, data: Variant)
+signal build_mode_entered(building_type: Enums.BuildingType)
+signal order_mode_entered(assignment: Enums.MinionAssignment)
+signal interaction_cancelled()
+
+# UI events
+signal evolve_modal_requested()

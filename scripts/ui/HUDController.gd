@@ -30,6 +30,7 @@ const PortalData := preload("res://scripts/entities/buildings/PortalData.gd")
 @onready var retreat_btn: Button = $BottomToolbar/HBox/OrdersSection/RetreatBtn
 @onready var evolve_label: Label = $BottomToolbar/HBox/EvolveSection/EvolveLabel
 @onready var evolve_btn: Button = $BottomToolbar/HBox/EvolveSection/EvolveBtn
+@onready var mode_indicator: Label = $ModeIndicator
 
 # UI text constants
 const WORLD_BUTTON_CORRUPTED := "Corrupt"
@@ -43,6 +44,10 @@ const THREAT_LEVEL_NAMES: Array[String] = ["None", "Police", "Military", "Heavy"
 const NODE_BTN_FORMAT := "N:%d"
 const PIT_BTN_FORMAT := "P:%d"
 const PORTAL_BTN_FORMAT := "O:%d"
+
+# Mode indicator text
+const MODE_BUILD := "Right-click to place"
+const MODE_ORDER := "Right-click to target"
 
 
 func _ready() -> void:
@@ -222,6 +227,8 @@ func _connect_signals() -> void:
 	EventBus.corruption_changed.connect(_on_corruption_changed)
 	EventBus.threat_level_changed.connect(_on_threat_level_changed)
 	EventBus.world_switched.connect(_on_world_switched)
+	EventBus.interaction_mode_changed.connect(_on_interaction_mode_changed)
+	EventBus.interaction_cancelled.connect(_on_interaction_cancelled)
 	Essence.essence_changed.connect(_on_essence_changed)
 	world_button.pressed.connect(_on_world_button_pressed)
 
@@ -244,6 +251,7 @@ func _init_ui_state() -> void:
 	_update_essence_display(Essence.current)
 	_update_world_button(WorldManager.active_world)
 	_update_building_buttons()
+	mode_indicator.visible = false
 
 
 func _on_essence_changed(new_amount: int) -> void:
@@ -284,31 +292,46 @@ func _on_world_button_pressed() -> void:
 	WorldManager.switch_world(target_world)
 
 
+func _on_interaction_mode_changed(mode: Enums.InteractionMode, _data: Variant) -> void:
+	match mode:
+		Enums.InteractionMode.BUILD:
+			mode_indicator.text = MODE_BUILD
+			mode_indicator.visible = true
+		Enums.InteractionMode.ORDER:
+			mode_indicator.text = MODE_ORDER
+			mode_indicator.visible = true
+		Enums.InteractionMode.NONE:
+			mode_indicator.visible = false
+
+
+func _on_interaction_cancelled() -> void:
+	mode_indicator.visible = false
+
+
 #region Toolbar Button Handlers
 
 func _on_node_btn_pressed() -> void:
-	EventBus.building_requested.emit(Enums.BuildingType.CORRUPTION_NODE)
+	EventBus.build_mode_entered.emit(Enums.BuildingType.CORRUPTION_NODE)
 
 
 func _on_pit_btn_pressed() -> void:
-	EventBus.building_requested.emit(Enums.BuildingType.SPAWNING_PIT)
+	EventBus.build_mode_entered.emit(Enums.BuildingType.SPAWNING_PIT)
 
 
 func _on_portal_btn_pressed() -> void:
-	EventBus.building_requested.emit(Enums.BuildingType.PORTAL)
+	EventBus.build_mode_entered.emit(Enums.BuildingType.PORTAL)
 
 
 func _on_attack_btn_pressed() -> void:
-	EventBus.order_requested.emit(Enums.MinionAssignment.ATTACKING)
+	EventBus.order_mode_entered.emit(Enums.MinionAssignment.ATTACKING)
 
 
 func _on_scout_btn_pressed() -> void:
-	# Scout uses idle assignment - will be extended in future
-	EventBus.order_requested.emit(Enums.MinionAssignment.IDLE)
+	EventBus.order_mode_entered.emit(Enums.MinionAssignment.IDLE)
 
 
 func _on_defend_btn_pressed() -> void:
-	EventBus.order_requested.emit(Enums.MinionAssignment.DEFENDING)
+	EventBus.order_mode_entered.emit(Enums.MinionAssignment.DEFENDING)
 
 
 func _on_retreat_btn_pressed() -> void:
@@ -316,7 +339,6 @@ func _on_retreat_btn_pressed() -> void:
 
 
 func _on_evolve_btn_pressed() -> void:
-	# Placeholder for future evolve system
-	pass
+	EventBus.evolve_modal_requested.emit()
 
 #endregion

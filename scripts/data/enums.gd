@@ -20,3 +20,6 @@ enum HumanType {CIVILIAN, ANIMAL}
 
 # Enemy types (military forces)
 enum EnemyType {POLICE, MILITARY, HEAVY, SPECIAL_FORCES}
+
+# Interaction modes
+enum InteractionMode {NONE, BUILD, ORDER}
