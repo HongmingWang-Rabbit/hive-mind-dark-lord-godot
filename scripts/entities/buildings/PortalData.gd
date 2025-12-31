@@ -2,6 +2,10 @@ extends RefCounted
 ## Portal configuration - all portal specific values
 ## Use preload pattern: const Data := preload("res://scripts/entities/buildings/PortalData.gd")
 
+# Display info
+const NAME := "Portal"
+const DESCRIPTION := "Travel between Dark and Human worlds"
+
 const SPRITE_PATH := "res://assets/sprites/buildings/dark_portal.png"
 const COLLISION_RADIUS := 8.0
 const TRAVEL_TRIGGER_RADIUS := 12.0  # Larger than collision for easier entry

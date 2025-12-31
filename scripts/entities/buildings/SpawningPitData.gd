@@ -2,6 +2,10 @@ extends RefCounted
 ## Spawning Pit configuration - allows spawning minions at this location
 ## Use preload pattern: const Data := preload("res://scripts/entities/buildings/SpawningPitData.gd")
 
+# Display info
+const NAME := "Spawning Pit"
+const DESCRIPTION := "Spawn minions at this location"
+
 const SPRITE_PATH := "res://assets/sprites/buildings/corruption_node.png"  # Placeholder until unique sprite
 const COLLISION_RADIUS := 8.0
 const SPRITE_SIZE_RATIO := 2.0  # Sprite diameter = collision diameter * this ratio

@@ -2,6 +2,10 @@ extends RefCounted
 ## Corruption Node configuration - generates passive essence income
 ## Use preload pattern: const Data := preload("res://scripts/entities/buildings/CorruptionNodeData.gd")
 
+# Display info
+const NAME := "Corruption Node"
+const DESCRIPTION := "Spreads corruption and generates essence"
+
 const SPRITE_PATH := "res://assets/sprites/buildings/corruption_node.png"
 const COLLISION_RADIUS := 8.0
 const SPRITE_SIZE_RATIO := 2.0  # Sprite diameter = collision diameter * this ratio

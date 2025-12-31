@@ -67,6 +67,7 @@ const MODAL_OVERLAY_COLOR := Color(0.0, 0.0, 0.0, 0.5)
 const TOOLBAR_HEIGHT := 24
 const TOOLBAR_SECTION_SEPARATION := 4
 const TOOLBAR_LABEL_COLOR := Color(0.8, 0.7, 0.9, 1.0)
+const BUILDING_BUTTON_ICON_SIZE := Vector2i(16, 16)  # Icon size for building buttons
 #endregion
 
 #region Mode Indicator

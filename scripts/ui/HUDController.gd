@@ -4,6 +4,8 @@ extends Control
 
 const UI := preload("res://scripts/ui/UITheme.gd")
 const PortalData := preload("res://scripts/entities/buildings/PortalData.gd")
+const CorruptionNodeData := preload("res://scripts/entities/buildings/CorruptionNodeData.gd")
+const SpawningPitData := preload("res://scripts/entities/buildings/SpawningPitData.gd")
 
 @onready var top_bar: PanelContainer = $TopBar
 @onready var hbox: HBoxContainer = $TopBar/HBox
@@ -40,10 +42,8 @@ const CORRUPTION_FORMAT := "C:%d%%"
 const THREAT_FORMAT := "T:%s"
 const THREAT_LEVEL_NAMES: Array[String] = ["None", "Police", "Military", "Heavy"]
 
-# Toolbar button text
-const NODE_BTN_FORMAT := "N:%d"
-const PIT_BTN_FORMAT := "P:%d"
-const PORTAL_BTN_FORMAT := "O:%d"
+# Tooltip format for buildings
+const BUILDING_TOOLTIP_FORMAT := "%s (%d)\n%s"
 
 # Mode indicator text
 const MODE_BUILD := "Click to place"
@@ -189,8 +189,8 @@ func _apply_toolbar_theme() -> void:
 		if child is VSeparator:
 			child.add_theme_constant_override("separation", UI.SEPARATOR_WIDTH)
 
-	# Update button text with costs
-	_update_building_button_text()
+	# Set up building buttons with icons and tooltips
+	_setup_building_buttons()
 
 
 func _create_bottom_panel_style() -> StyleBoxFlat:
@@ -214,10 +214,27 @@ func _get_building_cost(building_type: Enums.BuildingType) -> int:
 	return GameConstants.BUILDING_STATS[building_type].cost
 
 
-func _update_building_button_text() -> void:
-	node_btn.text = NODE_BTN_FORMAT % _get_building_cost(Enums.BuildingType.CORRUPTION_NODE)
-	pit_btn.text = PIT_BTN_FORMAT % _get_building_cost(Enums.BuildingType.SPAWNING_PIT)
-	portal_btn.text = PORTAL_BTN_FORMAT % _get_building_cost(Enums.BuildingType.PORTAL)
+func _setup_building_buttons() -> void:
+	## Configure building buttons with icons and tooltips
+	_setup_building_button(node_btn, CorruptionNodeData, Enums.BuildingType.CORRUPTION_NODE)
+	_setup_building_button(pit_btn, SpawningPitData, Enums.BuildingType.SPAWNING_PIT)
+	_setup_building_button(portal_btn, PortalData, Enums.BuildingType.PORTAL)
+
+
+func _setup_building_button(button: Button, data: Script, building_type: Enums.BuildingType) -> void:
+	## Set up a single building button with icon and tooltip
+	var cost := _get_building_cost(building_type)
+
+	# Load and set icon
+	var texture := load(data.SPRITE_PATH) as Texture2D
+	if texture:
+		button.icon = texture
+		button.text = ""  # Clear text since we're using icon
+		button.expand_icon = true
+		button.custom_minimum_size = UI.BUILDING_BUTTON_ICON_SIZE
+
+	# Set tooltip with name, cost, and description
+	button.tooltip_text = BUILDING_TOOLTIP_FORMAT % [data.NAME, cost, data.DESCRIPTION]
 
 
 func _update_building_buttons() -> void:
