@@ -15,3 +15,7 @@ const ACTIVE_COLOR := Color(1.0, 1.0, 1.0, 1.0)  # No tint, use sprite colors
 
 # Fog of war
 const SIGHT_RANGE := 2  # Tiles visible around node
+
+# Default fallback values (used if GameConstants.BUILDING_STATS is missing data)
+const DEFAULT_COST := 50
+const DEFAULT_ESSENCE_BONUS := 2

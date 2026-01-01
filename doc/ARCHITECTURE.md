@@ -212,6 +212,11 @@ MINION_STATS[MinionType] = {cost, upkeep, hp, damage, speed}
 #region Buildings
 BUILDING_STATS[BuildingType] = {cost, ...}  # Portal uses PortalData.gd instead
 
+#region Corruption Spread
+CORRUPTION_SPREAD_INTERVAL      # Seconds between node spread ticks (2.0)
+CORRUPTION_NODE_RANGE           # Max tiles from node for spreading (5)
+PORTAL_INITIAL_CORRUPTION_RANGE # Corruption radius in Human World (1)
+
 #region Win/Lose
 WIN_THRESHOLD           # Corruption % to win (1.0 = 100% Human World)
 THREAT_THRESHOLDS       # Array of corruption % triggers for each threat level
@@ -286,6 +291,13 @@ PORTAL_TRAVEL_COOLDOWN       # 1.0s - delay between world switches
 FOG_ENABLED                  # true - toggle fog system
 FOG_COLOR                    # Color(0, 0, 0, 0.95) - unexplored fog opacity
 INITIAL_CORRUPTION_REVEAL_RADIUS  # 3 tiles - starting revealed area
+
+#region World Collision Layers
+## Each world uses separate collision layers so entities don't collide across worlds
+COLLISION_LAYER_CORRUPTED_WORLD  # 4 - physics for Corrupted World entities
+COLLISION_LAYER_HUMAN_WORLD      # 5 - physics for Human World entities
+COLLISION_MASK_CORRUPTED_WORLD   # 1 + 4 - walls + Corrupted World
+COLLISION_MASK_HUMAN_WORLD       # 1 + 5 - walls + Human World
 ```
 
 ## Scene Tree (main.tscn)
@@ -545,11 +557,31 @@ reset()                              # Reset to initial state
 
 Entities exist in exactly one world at a time. When the view switches, entities remain in their world (they don't follow the camera). Entities must travel through linked portals to move between worlds.
 
-### Corruption Tracking
-- `human_corrupted_tiles: Dictionary` - Corruption in Human World (spreads near portals)
-- `corrupted_corrupted_tiles: Dictionary` - Corruption in Corrupted World (starts small, must expand)
+### World Collision Separation
+Each world uses separate collision layers so entities don't physically interact across worlds:
+- **Layer 4**: Corrupted World entities
+- **Layer 5**: Human World entities
+- **Layer 2**: Threat detection (Dark Lord, minions - for flee behavior)
 
-Both worlds start with small initial corruption around spawn point. Corruption spreads on floor tiles; structures render above corruption.
+Entities implement `set_world_collision(world)` to update their collision layer/mask. Called on:
+- Spawn (in `_ready()` or after adding to scene)
+- Portal transfer (`transfer_entity_to_world()` calls it automatically)
+
+### Corruption Tracking
+- `human_corrupted_tiles: Dictionary` - Corruption in Human World (spreads from nodes near portals)
+- `corrupted_corrupted_tiles: Dictionary` - Corruption in Corrupted World (starts with one node)
+
+**Corruption System:**
+- Game starts with one Corruption Node in Corrupted World at center
+- Corruption Nodes auto-spread corruption every `CORRUPTION_SPREAD_INTERVAL` seconds
+- Spread is limited to `CORRUPTION_NODE_RANGE` tiles (Manhattan distance) from each node
+- Buildings can only be placed on corrupted tiles
+- Portals create `PORTAL_INITIAL_CORRUPTION_RANGE` tiles of corruption in Human World
+
+**Helper Functions:**
+- `is_tile_corrupted(pos, world)` - Check if tile is corrupted
+- `can_corrupt_tile(pos, world)` - Check if tile can be corrupted
+- `corrupt_area_around(center, world, radius)` - Corrupt area around position
 
 ### Fog of War Tracking
 - `_human_explored_tiles: Dictionary` - Revealed tiles in Human World
@@ -743,25 +775,27 @@ SIGHT_RANGE             # int - tiles visible around portal (fog of war)
 ```
 
 ### Portal States
-- **Inactive**: Portal exists in only one world (gray tint)
-- **Active/Linked**: Portals exist at same tile in both worlds (purple glow)
+- **Active/Linked**: Portals are always created in both worlds simultaneously (no inactive state)
 
 ### Scene Structure (portal.tscn)
 ```
 Portal [StaticBody2D] (PortalController.gd)
 ├── Sprite2D - Visual representation
 ├── CollisionShape2D - Physics collision
-└── TravelArea [Area2D] - Detects Dark Lord for travel
+└── TravelArea [Area2D] - Detects travellable entities
     └── CollisionShape2D - Travel trigger radius
 ```
 
 ### Travel Mechanic
-1. Dark Lord enters active portal's TravelArea
-2. Portal checks if linked (exists in both worlds)
-3. If linked:
-   - Portal calls `World.transfer_entity_to_world()` to physically move entity to target world's Entities container
-   - Portal then calls `WorldManager.switch_world()` to change the camera view to follow
-4. Cooldown prevents rapid world-hopping
+1. Any travellable entity (Dark Lord, minions, civilians, animals, enemies) enters portal's TravelArea
+2. Portal grants travel immunity to prevent bounce-back at destination
+3. Portal calls `World.transfer_entity_to_world()` to physically move entity to target world
+4. If entity is Dark Lord, camera view switches to follow
+5. Cooldown prevents rapid world-hopping
+
+**Travellable entities**: Dark Lord, minions, civilians, animals, enemies (checked via group membership)
+
+**Travel immunity**: Static dictionary tracks recently-traveled entities to prevent immediate re-teleport at destination portal.
 
 **Key distinction**: World view switching (UI button, debug key) only changes which world is visible. Portal travel actually moves the entity between worlds.
 
@@ -790,14 +824,16 @@ scenes/entities/buildings/
 ### Building Types
 | Type | Cost | Effect |
 |------|------|--------|
-| Portal | 20 | Travel between worlds when linked |
-| Corruption Node | 50 | +2 essence income per second |
+| Portal | 20 | Travel between worlds (auto-linked, creates corruption in Human World) |
+| Corruption Node | 50 | Auto-spreads corruption + essence income (+2/s) |
 | Spawning Pit | 100 | Secondary minion spawn point |
+
+**Note:** All buildings require corrupted land to place.
 
 ### Placement Flow
 1. Click building button → enters build mode
 2. Cursor preview shows building sprite following mouse
-3. Left-click on map tile → building placed
+3. Left-click on corrupted tile → building placed (fails if not corrupted)
 4. ESC or right-click cancels build mode
 
 ### Common Building Pattern
@@ -812,6 +848,22 @@ func _ready() -> void:
 func setup(tile_pos: Vector2i, world: Enums.WorldType) -> void:
     # Position, register, emit signals
 ```
+
+### Corruption Node Behavior
+The Corruption Node auto-spreads corruption within its range:
+```gdscript
+# CorruptionNodeData.gd constants:
+NAME, DESCRIPTION           # UI display info
+SPRITE_PATH                 # Path to sprite texture
+COLLISION_RADIUS            # float - physics collision size
+SPRITE_SIZE_RATIO           # float - sprite size relative to collision
+ACTIVE_COLOR                # Color - sprite modulate
+SIGHT_RANGE                 # int - fog of war visibility
+DEFAULT_COST                # int - fallback cost if not in BUILDING_STATS
+DEFAULT_ESSENCE_BONUS       # int - fallback income bonus
+```
+
+Spread is controlled by `GameConstants.CORRUPTION_SPREAD_INTERVAL` and limited to `GameConstants.CORRUPTION_NODE_RANGE` tiles (Manhattan distance).
 
 ---
 

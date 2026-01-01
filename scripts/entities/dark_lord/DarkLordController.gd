@@ -33,6 +33,8 @@ func _ready() -> void:
 	_setup_combat()
 	_connect_signals()
 	_start_wander_timer()
+	# Dark Lord starts in Corrupted World
+	set_world_collision(Enums.WorldType.CORRUPTED)
 
 
 func _connect_signals() -> void:
@@ -115,25 +117,57 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _try_place_portal() -> void:
-	# Check if can afford
-	if not Essence.can_afford(PortalData.PLACEMENT_COST):
+	# Get the world node
+	var world_node := get_tree().current_scene
+	if not world_node.has_method("get_entities_container"):
 		return
 
 	# Get current tile position
 	var tile_size := GameConstants.TILE_SIZE
 	var current_tile := Vector2i(global_position / tile_size)
 
-	# Check if portal already exists at this position in current world
-	if WorldManager.has_portal_at(current_tile, WorldManager.active_world):
+	# Get current world the Dark Lord is in
+	var current_world: Enums.WorldType
+	if get_parent() == world_node.get_entities_container(Enums.WorldType.CORRUPTED):
+		current_world = Enums.WorldType.CORRUPTED
+	else:
+		current_world = Enums.WorldType.HUMAN
+
+	# Must place on corrupted land
+	if world_node.has_method("is_tile_corrupted"):
+		if not world_node.is_tile_corrupted(current_tile, current_world):
+			return
+
+	# Check if can afford
+	if not Essence.can_afford(PortalData.PLACEMENT_COST):
+		return
+
+	# Check if portal already exists at this position in either world
+	if WorldManager.has_portal_at(current_tile, Enums.WorldType.CORRUPTED) or WorldManager.has_portal_at(current_tile, Enums.WorldType.HUMAN):
 		return
 
 	# Spend essence
 	Essence.spend(PortalData.PLACEMENT_COST)
 
-	# Create portal
+	# Create portal in current world
 	var portal := PortalScene.instantiate()
-	get_parent().add_child(portal)
-	portal.setup(current_tile, WorldManager.active_world)
+	world_node.get_entities_container(current_world).add_child(portal)
+	portal.setup(current_tile, current_world)
+
+	# Auto-create linked portal in the other world
+	var other_world: Enums.WorldType
+	if current_world == Enums.WorldType.CORRUPTED:
+		other_world = Enums.WorldType.HUMAN
+	else:
+		other_world = Enums.WorldType.CORRUPTED
+
+	var other_portal := PortalScene.instantiate()
+	world_node.get_entities_container(other_world).add_child(other_portal)
+	other_portal.setup(current_tile, other_world)
+
+	# Create initial corruption around the Human World portal
+	if world_node.has_method("corrupt_area_around"):
+		world_node.corrupt_area_around(current_tile, Enums.WorldType.HUMAN, GameConstants.PORTAL_INITIAL_CORRUPTION_RANGE)
 
 
 #region Fog of War
@@ -148,6 +182,13 @@ func get_visible_tiles() -> Array[Vector2i]:
 #region Combat
 
 func _setup_combat() -> void:
+	# Configure attack range from constants
+	var attack_shape := attack_range.get_node("CollisionShape2D") as CollisionShape2D
+	if attack_shape:
+		var circle := CircleShape2D.new()
+		circle.radius = GameConstants.DARK_LORD_ATTACK_RANGE
+		attack_shape.shape = circle
+
 	attack_timer.wait_time = GameConstants.DARK_LORD_ATTACK_COOLDOWN
 	attack_timer.one_shot = true
 	attack_range.body_entered.connect(_on_attack_range_body_entered)
@@ -205,5 +246,27 @@ func get_hp() -> int:
 
 func get_max_hp() -> int:
 	return GameConstants.DARK_LORD_HP
+
+#endregion
+
+
+#region World Collision
+
+func set_world_collision(target_world: Enums.WorldType) -> void:
+	## Set collision layer/mask based on which world this entity is in
+	## Called when spawned and when transferring between worlds
+	var world_layer: int
+	var world_mask: int
+	match target_world:
+		Enums.WorldType.CORRUPTED:
+			world_layer = 1 << (GameConstants.COLLISION_LAYER_CORRUPTED_WORLD - 1)
+			world_mask = GameConstants.COLLISION_MASK_CORRUPTED_WORLD
+		Enums.WorldType.HUMAN:
+			world_layer = 1 << (GameConstants.COLLISION_LAYER_HUMAN_WORLD - 1)
+			world_mask = GameConstants.COLLISION_MASK_HUMAN_WORLD
+
+	# Keep layer 2 for threat detection (flee behavior)
+	collision_layer = world_layer | 2
+	collision_mask = world_mask
 
 #endregion

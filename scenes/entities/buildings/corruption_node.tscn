@@ -11,3 +11,5 @@ texture = ExtResource("2_texture")
 texture_filter = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+
+[node name="SpreadTimer" type="Timer" parent="."]

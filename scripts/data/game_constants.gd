@@ -106,6 +106,22 @@ const GROUP_SPAWNING_PITS := "spawning_pits"
 
 #endregion
 
+#region World Collision Layers
+## Each world uses separate collision layers so entities don't collide across worlds
+## Layer 1: Shared (walls, structures from tilemap)
+## Layer 2: Threats detection (Dark Lord, minions - for flee behavior)
+## Layer 4: Corrupted World physics
+## Layer 5: Human World physics
+
+const COLLISION_LAYER_CORRUPTED_WORLD := 4
+const COLLISION_LAYER_HUMAN_WORLD := 5
+
+# Combined masks for entities that need to collide with world geometry + their world's entities
+const COLLISION_MASK_CORRUPTED_WORLD := 1 | (1 << (COLLISION_LAYER_CORRUPTED_WORLD - 1))  # Layers 1 + 4
+const COLLISION_MASK_HUMAN_WORLD := 1 | (1 << (COLLISION_LAYER_HUMAN_WORLD - 1))  # Layers 1 + 5
+
+#endregion
+
 #region Units
 
 # Minion stats: {cost, upkeep, hp, damage, speed}
@@ -124,6 +140,14 @@ const BUILDING_STATS := {
 	Enums.BuildingType.SPAWNING_PIT: {cost = 100, capacity = 5},
 	# Portal stats in PortalData.gd (entity-specific data pattern)
 }
+
+#endregion
+
+#region Corruption Spread
+
+const CORRUPTION_SPREAD_INTERVAL := 2.0  # Seconds between corruption spread ticks
+const CORRUPTION_NODE_RANGE := 5  # Max tiles from node that corruption can spread
+const PORTAL_INITIAL_CORRUPTION_RANGE := 1  # Tiles of corruption created in Human World around portal
 
 #endregion
 

@@ -243,17 +243,12 @@ func _setup_atmosphere_particles() -> void:
 
 
 func _init_corrupted_world_corruption() -> void:
-	## Initialize corruption in Corrupted World around starting point only
-	## Corruption must be expanded over time (same as Human World)
-	var tiles := FogUtils.get_tiles_in_sight_range(
-		_initial_corruption_tile,
-		GameConstants.INITIAL_CORRUPTION_REVEAL_RADIUS
-	)
-	for pos: Vector2i in tiles:
-		if corrupted_floor_map.get_cell_source_id(pos) != -1:
-			corrupted_corrupted_tiles[pos] = true
-			var floor_tile := corrupted_floor_map.get_cell_atlas_coords(pos)
-			corrupted_corruption_map.set_cell(pos, GameConstants.TILEMAP_SOURCE_ID, floor_tile)
+	## Spawn initial Corruption Node in Corrupted World
+	## The node will handle spreading corruption automatically
+	var initial_node := CorruptionNodeScene.instantiate()
+	corrupted_entities.add_child(initial_node)
+	# Note: setup() is called after adding to tree so @onready vars are ready
+	initial_node.setup(_initial_corruption_tile, Enums.WorldType.CORRUPTED)
 
 
 func _spawn_dark_lord() -> void:
@@ -347,6 +342,10 @@ func transfer_entity_to_world(entity: Node2D, target_world: Enums.WorldType) -> 
 	entity.get_parent().remove_child(entity)
 	get_entities_container(target_world).add_child(entity)
 	entity.global_position = global_pos
+
+	# Update collision layer so entity collides with correct world
+	if entity.has_method("set_world_collision"):
+		entity.set_world_collision(target_world)
 
 #endregion
 
@@ -625,6 +624,44 @@ func _update_corruption_percent() -> void:
 	# Calculate based on Human World corruption (that's what matters for winning)
 	var percent := float(human_corrupted_tiles.size()) / float(total_tiles)
 	GameManager.update_corruption(percent)
+
+
+func is_tile_corrupted(tile_pos: Vector2i, world: Enums.WorldType) -> bool:
+	## Check if a tile is corrupted in the given world
+	match world:
+		Enums.WorldType.HUMAN:
+			return human_corrupted_tiles.has(tile_pos)
+		Enums.WorldType.CORRUPTED:
+			return corrupted_corrupted_tiles.has(tile_pos)
+	return false
+
+
+func can_corrupt_tile(tile_pos: Vector2i, world: Enums.WorldType) -> bool:
+	## Check if a tile can be corrupted (is floor and not already corrupted)
+	var floor_map: TileMapLayer
+	var tiles_dict: Dictionary
+
+	match world:
+		Enums.WorldType.HUMAN:
+			floor_map = human_floor_map
+			tiles_dict = human_corrupted_tiles
+		Enums.WorldType.CORRUPTED:
+			floor_map = corrupted_floor_map
+			tiles_dict = corrupted_corrupted_tiles
+
+	# Already corrupted
+	if tiles_dict.has(tile_pos):
+		return false
+
+	# Not a valid floor tile
+	if floor_map.get_cell_source_id(tile_pos) == -1:
+		return false
+
+	# Occupied by structure
+	if occupied_tiles.has(tile_pos):
+		return false
+
+	return true
 
 #endregion
 
@@ -937,6 +974,9 @@ func _try_spawn_minion(type: Enums.MinionType) -> void:
 	var offset := Vector2(randf_range(-spawn_range, spawn_range), randf_range(-spawn_range, spawn_range))
 	minion.global_position = _dark_lord.global_position + offset
 
+	# Set collision layer to match the world the minion is in
+	minion.set_world_collision(dark_lord_world)
+
 
 func _get_dark_lord_world() -> Enums.WorldType:
 	## Determine which world the Dark Lord is currently in
@@ -1038,8 +1078,12 @@ func _execute_order(target_pos: Vector2) -> void:
 #region Building Placement
 
 func _try_place_corruption_node(tile_pos: Vector2i, world: Enums.WorldType) -> void:
+	# Must place on corrupted land
+	if not is_tile_corrupted(tile_pos, world):
+		return
+
 	var stats: Dictionary = GameConstants.BUILDING_STATS.get(Enums.BuildingType.CORRUPTION_NODE, {})
-	var cost: int = stats.get("cost", 50)
+	var cost: int = stats.get("cost", CorruptionNodeData.DEFAULT_COST)
 
 	if not Essence.can_afford(cost):
 		return
@@ -1054,8 +1098,12 @@ func _try_place_corruption_node(tile_pos: Vector2i, world: Enums.WorldType) -> v
 
 
 func _try_place_spawning_pit(tile_pos: Vector2i, world: Enums.WorldType) -> void:
+	# Must place on corrupted land
+	if not is_tile_corrupted(tile_pos, world):
+		return
+
 	var stats: Dictionary = GameConstants.BUILDING_STATS.get(Enums.BuildingType.SPAWNING_PIT, {})
-	var cost: int = stats.get("cost", 100)
+	var cost: int = stats.get("cost", SpawningPitData.DEFAULT_COST)
 
 	if not Essence.can_afford(cost):
 		return
@@ -1070,8 +1118,12 @@ func _try_place_spawning_pit(tile_pos: Vector2i, world: Enums.WorldType) -> void
 
 
 func _try_place_portal(tile_pos: Vector2i, world: Enums.WorldType) -> void:
-	# Check if portal already exists at this position
-	if WorldManager.has_portal_at(tile_pos, world):
+	# Must place on corrupted land
+	if not is_tile_corrupted(tile_pos, world):
+		return
+
+	# Check if portal already exists at this position in either world
+	if WorldManager.has_portal_at(tile_pos, Enums.WorldType.CORRUPTED) or WorldManager.has_portal_at(tile_pos, Enums.WorldType.HUMAN):
 		return
 
 	if not Essence.can_afford(PortalData.PLACEMENT_COST):
@@ -1080,10 +1132,36 @@ func _try_place_portal(tile_pos: Vector2i, world: Enums.WorldType) -> void:
 	if not Essence.spend(PortalData.PLACEMENT_COST):
 		return
 
+	# Create portal in current world
 	var portal := PortalScene.instantiate()
 	var container := get_entities_container(world)
 	container.add_child(portal)
 	portal.setup(tile_pos, world)
+
+	# Auto-create linked portal in the other world
+	var other_world: Enums.WorldType
+	if world == Enums.WorldType.CORRUPTED:
+		other_world = Enums.WorldType.HUMAN
+	else:
+		other_world = Enums.WorldType.CORRUPTED
+
+	var other_portal := PortalScene.instantiate()
+	var other_container := get_entities_container(other_world)
+	other_container.add_child(other_portal)
+	other_portal.setup(tile_pos, other_world)
+
+	# Create initial corruption around the Human World portal
+	corrupt_area_around(tile_pos, Enums.WorldType.HUMAN, GameConstants.PORTAL_INITIAL_CORRUPTION_RANGE)
+
+
+func corrupt_area_around(center: Vector2i, world: Enums.WorldType, radius: int) -> void:
+	## Corrupt tiles within radius of center (Manhattan distance)
+	for dx in range(-radius, radius + 1):
+		for dy in range(-radius, radius + 1):
+			var dist := absi(dx) + absi(dy)
+			if dist <= radius:
+				var pos := center + Vector2i(dx, dy)
+				corrupt_tile(pos, world)
 
 #endregion
 

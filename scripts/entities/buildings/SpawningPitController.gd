@@ -24,6 +24,9 @@ func setup(building_tile_pos: Vector2i, building_world: Enums.WorldType) -> void
 	tile_pos = building_tile_pos
 	world = building_world
 
+	# Set collision layer based on world (so buildings don't collide across worlds)
+	_set_world_collision_layer(world)
+
 	# Position at tile center
 	var tile_size := GameConstants.TILE_SIZE
 	global_position = Vector2(tile_pos) * tile_size + Vector2(tile_size, tile_size) / 2.0
@@ -49,6 +52,15 @@ func _setup_sprite() -> void:
 	var scale_factor := desired_diameter / max_dimension
 	sprite.scale = Vector2(scale_factor, scale_factor)
 	sprite.modulate = Data.ACTIVE_COLOR
+
+
+func _set_world_collision_layer(target_world: Enums.WorldType) -> void:
+	## Set collision layer based on which world this building is in
+	match target_world:
+		Enums.WorldType.CORRUPTED:
+			collision_layer = 1 << (GameConstants.COLLISION_LAYER_CORRUPTED_WORLD - 1)
+		Enums.WorldType.HUMAN:
+			collision_layer = 1 << (GameConstants.COLLISION_LAYER_HUMAN_WORLD - 1)
 
 
 #region Fog of War

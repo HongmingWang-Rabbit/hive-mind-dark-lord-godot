@@ -38,6 +38,8 @@ func _ready() -> void:
 	_setup_detection()
 	_setup_combat()
 	_pick_patrol_target()
+	# Enemies spawn in Human World
+	set_world_collision(Enums.WorldType.HUMAN)
 
 
 func setup(type: Enums.EnemyType) -> void:
@@ -272,5 +274,26 @@ func take_damage(amount: int) -> void:
 
 func _die() -> void:
 	queue_free()
+
+#endregion
+
+
+#region World Collision
+
+func set_world_collision(target_world: Enums.WorldType) -> void:
+	## Set collision layer/mask based on which world this entity is in
+	## Called when spawned and when transferring between worlds
+	var world_layer: int
+	var world_mask: int
+	match target_world:
+		Enums.WorldType.CORRUPTED:
+			world_layer = 1 << (GameConstants.COLLISION_LAYER_CORRUPTED_WORLD - 1)
+			world_mask = GameConstants.COLLISION_MASK_CORRUPTED_WORLD
+		Enums.WorldType.HUMAN:
+			world_layer = 1 << (GameConstants.COLLISION_LAYER_HUMAN_WORLD - 1)
+			world_mask = GameConstants.COLLISION_MASK_HUMAN_WORLD
+
+	collision_layer = world_layer
+	collision_mask = world_mask
 
 #endregion

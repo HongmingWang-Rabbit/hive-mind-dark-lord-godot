@@ -1,6 +1,6 @@
 extends StaticBody2D
 ## Portal building - allows travel between Corrupted and Human worlds
-## Place in one world, then place matching portal in other world to activate
+## Portals are automatically linked in both worlds when placed
 
 const Data := preload("res://scripts/entities/buildings/PortalData.gd")
 const FogUtils := preload("res://scripts/utils/fog_utils.gd")
@@ -18,6 +18,10 @@ var is_linked := false
 # Cooldown tracking
 var _travel_cooldown := 0.0
 
+# Shared travel immunity - prevents bounce-back when entity arrives at linked portal
+# Key: entity instance ID, Value: time remaining
+static var _travel_immunity: Dictionary = {}
+
 
 func _ready() -> void:
 	_setup_collision_shape()
@@ -33,6 +37,9 @@ func _ready() -> void:
 func setup(portal_tile_pos: Vector2i, portal_world: Enums.WorldType) -> void:
 	tile_pos = portal_tile_pos
 	world = portal_world
+
+	# Set collision layer based on world (so portals don't collide across worlds)
+	_set_world_collision_layer(world)
 
 	# Position at tile center
 	var tile_size := GameConstants.TILE_SIZE
@@ -74,6 +81,15 @@ func _process(delta: float) -> void:
 	if _travel_cooldown > 0.0:
 		_travel_cooldown -= delta
 
+	# Update shared travel immunity timers
+	var expired: Array = []
+	for entity_id: int in _travel_immunity.keys():
+		_travel_immunity[entity_id] -= delta
+		if _travel_immunity[entity_id] <= 0.0:
+			expired.append(entity_id)
+	for entity_id: int in expired:
+		_travel_immunity.erase(entity_id)
+
 
 func _update_linked_status() -> void:
 	is_linked = WorldManager.is_portal_linked(tile_pos)
@@ -102,7 +118,20 @@ func _on_travel_area_body_entered(body: Node2D) -> void:
 	if _travel_cooldown > 0.0:
 		return
 
-	if not body.is_in_group(GameConstants.GROUP_DARK_LORD):
+	# Check if entity has travel immunity (just came through a portal)
+	var entity_id := body.get_instance_id()
+	if _travel_immunity.has(entity_id):
+		return
+
+	# Check if entity can travel (Dark Lord, minions, civilians, animals, enemies)
+	var can_travel := (
+		body.is_in_group(GameConstants.GROUP_DARK_LORD) or
+		body.is_in_group(GameConstants.GROUP_MINIONS) or
+		body.is_in_group(GameConstants.GROUP_CIVILIANS) or
+		body.is_in_group(GameConstants.GROUP_ANIMALS) or
+		body.is_in_group(GameConstants.GROUP_ENEMIES)
+	)
+	if not can_travel:
 		return
 
 	# Determine target world
@@ -112,14 +141,33 @@ func _on_travel_area_body_entered(body: Node2D) -> void:
 	else:
 		target_world = Enums.WorldType.CORRUPTED
 
+	# Grant travel immunity to prevent bounce-back
+	_travel_immunity[entity_id] = GameConstants.PORTAL_TRAVEL_COOLDOWN
+
 	# Physically move entity to target world
 	var world_node = get_tree().current_scene
 	if world_node.has_method("transfer_entity_to_world"):
 		world_node.transfer_entity_to_world(body, target_world)
 
-	# Switch view to follow the entity
-	WorldManager.switch_world(target_world)
+	# Only switch view to follow the Dark Lord (not other entities)
+	if body.is_in_group(GameConstants.GROUP_DARK_LORD):
+		WorldManager.switch_world(target_world)
+
 	_travel_cooldown = GameConstants.PORTAL_TRAVEL_COOLDOWN
+
+
+func _set_world_collision_layer(target_world: Enums.WorldType) -> void:
+	## Set collision layer based on which world this portal is in
+	var layer: int
+	match target_world:
+		Enums.WorldType.CORRUPTED:
+			layer = 1 << (GameConstants.COLLISION_LAYER_CORRUPTED_WORLD - 1)
+		Enums.WorldType.HUMAN:
+			layer = 1 << (GameConstants.COLLISION_LAYER_HUMAN_WORLD - 1)
+
+	collision_layer = layer
+	# TravelArea should detect entities in this world
+	travel_area.collision_mask = layer
 
 
 #region Fog of War

@@ -11,3 +11,8 @@ const SPRITE_SIZE_RATIO := 1.0
 const WANDER_SPEED := 15.0  # Slower than civilians
 const WANDER_INTERVAL_MIN := 2.0
 const WANDER_INTERVAL_MAX := 5.0
+
+# Flee behavior
+const FLEE_SPEED := 40.0  # Faster than wander when fleeing
+const FLEE_DETECTION_RADIUS := 40.0  # 2.5 tiles - how far to detect threats
+const FLEE_SAFE_DISTANCE := 56.0  # 3.5 tiles - stop fleeing when this far

@@ -139,11 +139,23 @@ doc/            # Design docs
 ### Gameplay
 - **Left-click**: Move Dark Lord to position (when no mode active)
 - **Space**: Spread corruption
-- **P**: Place portal at Dark Lord position
+- **P**: Place linked portal (creates portal in both worlds)
 - **1**: Spawn Crawler minion (costs 20 essence)
 - **2**: Spawn Brute minion (costs 50 essence)
 - **3**: Spawn Stalker minion (costs 40 essence)
 - **Tab**: Switch between Corrupted/Human world (debug)
+
+### Portal Travel
+- Entities that can travel through portals: Dark Lord, minions, civilians, animals, enemies
+- Portals are always linked (created in both worlds simultaneously)
+- Walking into a portal teleports the entity to the same position in the other world
+
+### Corruption System
+- **Game starts with one Corruption Node** in Corrupted World at center
+- **Corruption Nodes auto-spread** corruption every 2 seconds within their range (5 tiles)
+- **Buildings require corrupted land** - can only place on corrupted tiles
+- **Portals create corruption in Human World** - small area around portal when placed
+- **Game flow**: Start → wait for corruption to spread → build next node → expand → build portal → gather resources in Human World → expand further
 
 ### UI Interaction Mode (Priority-Based)
 Input is handled in priority order:
@@ -205,6 +217,11 @@ KEY_SPAWN_CRAWLER, KEY_SPAWN_BRUTE, KEY_SPAWN_STALKER
 # Win/Lose
 WIN_THRESHOLD, THREAT_THRESHOLDS
 
+# Corruption Spread
+CORRUPTION_SPREAD_INTERVAL  # Seconds between node spread ticks
+CORRUPTION_NODE_RANGE       # Max tiles from node
+PORTAL_INITIAL_CORRUPTION_RANGE  # Tiles corrupted in Human World
+
 # Map Generation
 MAP_WIDTH, MAP_HEIGHT, MAP_EDGE_MARGIN
 BUILDING_COUNT_MIN/MAX, PROP_COUNT
@@ -230,6 +247,12 @@ PORTAL_CORRUPTION_RADIUS, PORTAL_TRAVEL_COOLDOWN
 # Fog of War
 FOG_ENABLED, FOG_COLOR
 INITIAL_CORRUPTION_REVEAL_RADIUS
+
+# World Collision Layers (entities in different worlds don't collide)
+COLLISION_LAYER_CORRUPTED_WORLD   # Layer 4
+COLLISION_LAYER_HUMAN_WORLD       # Layer 5
+COLLISION_MASK_CORRUPTED_WORLD    # Layers 1 + 4
+COLLISION_MASK_HUMAN_WORLD        # Layers 1 + 5
 ```
 
 ## Changing Tileset
@@ -257,3 +280,4 @@ const CHAR_SKELETON := Vector2i(3, 7)
 - Set configurable scene values (scale, collision shapes) from Data in `_ready()`
 - For entity visibility (fog), implement `get_visible_tiles()` using `FogUtils.get_tiles_in_sight_range()`
 - For killable entities: init HP from `GameConstants.*_HP`, implement `take_damage()`, add to `GROUP_KILLABLE`
+- For world-separated collision: implement `set_world_collision(world)` to set layer/mask, call when spawning and on portal transfer
