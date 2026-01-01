@@ -279,5 +279,6 @@ const CHAR_SKELETON := Vector2i(3, 7)
 - Call `GameManager.reset_game()` to reset all systems
 - Set configurable scene values (scale, collision shapes) from Data in `_ready()`
 - For entity visibility (fog), implement `get_visible_tiles()` using `FogUtils.get_tiles_in_sight_range()`
+- For continuous fog reveal during movement, track `_last_tile_pos` and call fog update when crossing tile boundaries
 - For killable entities: init HP from `GameConstants.*_HP`, implement `take_damage()`, add to `GROUP_KILLABLE`
 - For world-separated collision: implement `set_world_collision(world)` to set layer/mask, call when spawning and on portal transfer

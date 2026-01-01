@@ -18,6 +18,9 @@ var _target_position: Vector2
 var _is_moving := false
 var _is_player_commanded := false  # True when moving to player-clicked position
 
+# Fog tracking - update fog when crossing tile boundaries
+var _last_tile_pos: Vector2i = Vector2i(-999, -999)
+
 # Combat
 var _hp: int
 var _current_target: Node2D = null
@@ -35,6 +38,8 @@ func _ready() -> void:
 	_start_wander_timer()
 	# Dark Lord starts in Corrupted World
 	set_world_collision(Enums.WorldType.CORRUPTED)
+	# Initialize fog around spawn position
+	_check_fog_update()
 
 
 func _connect_signals() -> void:
@@ -74,13 +79,14 @@ func _move_toward_target() -> void:
 		_is_moving = false
 		_is_player_commanded = false
 		_start_wander_timer()
-		# Update fog when reaching new position
-		EventBus.fog_update_requested.emit(WorldManager.active_world)
 	else:
 		# Flip sprite based on movement direction
 		if velocity.x != 0:
 			sprite.flip_h = velocity.x < 0
 		move_and_slide()
+
+	# Update fog when crossing tile boundaries (reveals as we move)
+	_check_fog_update()
 
 
 func _on_move_ordered(target_pos: Vector2) -> void:
@@ -176,6 +182,14 @@ func get_visible_tiles() -> Array[Vector2i]:
 	## Returns array of tiles visible from Dark Lord's position
 	var center := Vector2i(global_position / GameConstants.TILE_SIZE)
 	return FogUtils.get_tiles_in_sight_range(center, Data.SIGHT_RANGE)
+
+
+func _check_fog_update() -> void:
+	## Update fog when crossing tile boundaries (reveals as we move)
+	var current_tile := Vector2i(global_position / GameConstants.TILE_SIZE)
+	if current_tile != _last_tile_pos:
+		_last_tile_pos = current_tile
+		EventBus.fog_update_requested.emit(WorldManager.active_world)
 
 #endregion
 

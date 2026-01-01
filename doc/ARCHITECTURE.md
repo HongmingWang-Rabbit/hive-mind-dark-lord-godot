@@ -1046,6 +1046,19 @@ func get_visible_tiles() -> Array[Vector2i]:
     return FogUtils.get_tiles_in_sight_range(center, Data.SIGHT_RANGE)
 ```
 
+### Continuous Fog Reveal During Movement
+For smooth fog reveal as entities move (not just when stopping), track the last tile position:
+```gdscript
+var _last_tile_pos: Vector2i = Vector2i(-999, -999)
+
+func _check_fog_update() -> void:
+    var current_tile := Vector2i(global_position / GameConstants.TILE_SIZE)
+    if current_tile != _last_tile_pos:
+        _last_tile_pos = current_tile
+        EventBus.fog_update_requested.emit(WorldManager.active_world)
+```
+Call `_check_fog_update()` in `_ready()` and during movement (e.g., in `_move_toward_target()`).
+
 ### Visibility Shape
 Uses Euclidean distance (circular reveal) via squared distance comparison for efficiency.
 
