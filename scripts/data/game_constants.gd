@@ -113,8 +113,14 @@ const GROUP_SPAWNING_PITS := "spawning_pits"
 ## Layer 4: Corrupted World physics
 ## Layer 5: Human World physics
 
+const COLLISION_LAYER_WALLS := 1
+const COLLISION_LAYER_THREATS := 2
 const COLLISION_LAYER_CORRUPTED_WORLD := 4
 const COLLISION_LAYER_HUMAN_WORLD := 5
+
+# Masks
+const COLLISION_MASK_WALLS := 1 << (COLLISION_LAYER_WALLS - 1)  # Layer 1 only
+const COLLISION_MASK_THREATS := 1 << (COLLISION_LAYER_THREATS - 1)  # Layer 2 only
 
 # Combined masks for entities that need to collide with world geometry + their world's entities
 const COLLISION_MASK_CORRUPTED_WORLD := 1 | (1 << (COLLISION_LAYER_CORRUPTED_WORLD - 1))  # Layers 1 + 4

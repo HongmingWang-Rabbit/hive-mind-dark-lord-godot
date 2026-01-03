@@ -257,8 +257,12 @@ FOG_ENABLED, FOG_COLOR
 INITIAL_CORRUPTION_REVEAL_RADIUS
 
 # World Collision Layers (entities in different worlds don't collide)
+COLLISION_LAYER_WALLS             # Layer 1 - shared walls/structures
+COLLISION_LAYER_THREATS           # Layer 2 - Dark Lord + minions (flee detection)
 COLLISION_LAYER_CORRUPTED_WORLD   # Layer 4
 COLLISION_LAYER_HUMAN_WORLD       # Layer 5
+COLLISION_MASK_WALLS              # Layer 1 only - friendly units don't block each other
+COLLISION_MASK_THREATS            # Layer 2 only - enemy detection areas
 COLLISION_MASK_CORRUPTED_WORLD    # Layers 1 + 4
 COLLISION_MASK_HUMAN_WORLD        # Layers 1 + 5
 ```

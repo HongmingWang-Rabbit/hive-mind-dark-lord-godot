@@ -291,12 +291,12 @@ func set_world_collision(target_world: Enums.WorldType) -> void:
 			world_layer = 1 << (GameConstants.COLLISION_LAYER_HUMAN_WORLD - 1)
 
 	# Layer: world layer only (enemies don't need threat layer)
-	# Mask: only layer 1 (walls) - units don't block each other
+	# Mask: walls only - units don't block each other
 	collision_layer = world_layer
-	collision_mask = 1
+	collision_mask = GameConstants.COLLISION_MASK_WALLS
 
-	# Update detection areas to detect threats (layer 2) in current world
-	detection_area.collision_mask = 2
-	attack_range.collision_mask = 2
+	# Update detection areas to detect threats in current world
+	detection_area.collision_mask = GameConstants.COLLISION_MASK_THREATS
+	attack_range.collision_mask = GameConstants.COLLISION_MASK_THREATS
 
 #endregion

@@ -252,6 +252,9 @@ CAMERA_PAN_LEFT_KEYS    # [Key] - keys for panning left (default: [KEY_A])
 CAMERA_PAN_RIGHT_KEYS   # [Key] - keys for panning right (default: [KEY_D])
 CAMERA_PAN_UP_KEYS      # [Key] - keys for panning up (default: [KEY_W])
 CAMERA_PAN_DOWN_KEYS    # [Key] - keys for panning down (default: [KEY_S])
+CAMERA_ZOOM_MIN         # float - minimum zoom level (0.5 = zoomed out)
+CAMERA_ZOOM_MAX         # float - maximum zoom level (2.0 = zoomed in)
+CAMERA_ZOOM_STEP        # float - zoom change per scroll tick (0.1)
 
 #region Input Keys
 KEY_PLACE_PORTAL        # Key for placing portals (KEY_P)
@@ -294,8 +297,13 @@ INITIAL_CORRUPTION_REVEAL_RADIUS  # 3 tiles - starting revealed area
 
 #region World Collision Layers
 ## Each world uses separate collision layers so entities don't collide across worlds
+COLLISION_LAYER_WALLS            # 1 - shared walls/structures
+COLLISION_LAYER_THREATS          # 2 - Dark Lord + minions (flee behavior detection)
 COLLISION_LAYER_CORRUPTED_WORLD  # 4 - physics for Corrupted World entities
 COLLISION_LAYER_HUMAN_WORLD      # 5 - physics for Human World entities
+
+COLLISION_MASK_WALLS             # Layer 1 only - for friendly units that don't block each other
+COLLISION_MASK_THREATS           # Layer 2 only - for enemy detection areas
 COLLISION_MASK_CORRUPTED_WORLD   # 1 + 4 - walls + Corrupted World
 COLLISION_MASK_HUMAN_WORLD       # 1 + 5 - walls + Human World
 ```
@@ -500,6 +508,7 @@ Standalone camera script attached to Camera2D node. Handles all camera movement.
 - **Keyboard pan**: Arrow keys (built-in) + configurable keys (default: WASD)
 - **Mouse drag**: Configurable buttons (default: left/middle)
 - **Touch drag**: Single finger drag support
+- **Scroll wheel zoom**: Zoom in/out with mouse wheel (min/max configurable)
 - **Bounds clamping**: Prevents camera from leaving map area
 - **Fully configurable**: All inputs defined in GameConstants
 
@@ -828,9 +837,17 @@ scenes/entities/buildings/
 |------|------|--------|
 | Portal | 20 | Travel between worlds (auto-linked, creates corruption in Human World) |
 | Corruption Node | 50 | Auto-spreads corruption + essence income (+2/s) |
-| Spawning Pit | 100 | Auto-spawns Crawler minions every 10s (costs essence) |
+| Spawning Pit | 100 | Auto-spawns minions every `SPAWN_INTERVAL` seconds |
 
 **Note:** All buildings require corrupted land to place.
+
+### Spawning Pit Behavior
+The Spawning Pit auto-spawns minions using HivePool:
+- Spawns minion type defined by `Data.SPAWN_TYPE` (default: Crawler)
+- Spawn interval from `Data.SPAWN_INTERVAL` (10s)
+- Uses HivePool to check capacity and deduct essence cost
+- Minions spawn with random offset (`Data.SPAWN_OFFSET_RATIO` of tile size)
+- Automatically sets world collision for spawned minions
 
 ### Placement Flow
 1. Click building button → enters build mode
@@ -906,6 +923,9 @@ WANDER_SPEED_FACTOR       # float - wander speed as fraction of full speed
 WANDER_ARRIVAL_DISTANCE   # float - consider arrived when this close
 WANDER_DIRECTION_CHANGE_CHANCE  # int - 1 in N frames to pick new target
 ORDER_ARRIVAL_DISTANCE    # float - arrival distance for player orders
+SEPARATION_DISTANCE       # float - desired min distance between minions (squad spacing)
+SEPARATION_STRENGTH       # float - how strongly to push apart (0-1)
+SEPARATION_MOVE_THRESHOLD # float - min separation force to trigger movement
 DEFAULT_HP                # int - fallback if MINION_STATS missing
 DEFAULT_SPEED             # float - fallback if MINION_STATS missing
 DEFAULT_DAMAGE            # int - fallback if MINION_STATS missing
@@ -918,6 +938,13 @@ DEFAULT_DAMAGE            # int - fallback if MINION_STATS missing
 | ATTACK | Chase and attack enemies in range |
 | WANDER | Idle movement near Dark Lord |
 | MOVE_TO | Moving to player-ordered position |
+
+### Squad Separation
+Minions maintain spacing from each other using separation behavior:
+- **Separation force** calculated from nearby minions within `SEPARATION_DISTANCE`
+- Force strength inversely proportional to distance (closer = stronger push)
+- Applied in FOLLOW, WANDER, and MOVE_TO states
+- Blended with movement direction to avoid clumping while still reaching targets
 
 ### Order System
 - Listens to `EventBus.attack_ordered` and `EventBus.retreat_ordered` signals

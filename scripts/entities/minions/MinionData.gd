@@ -24,6 +24,7 @@ const ORDER_ARRIVAL_DISTANCE := 8.0  # Consider arrived at order target when thi
 # Squad separation (keep minions from clumping)
 const SEPARATION_DISTANCE := 16.0  # Desired min distance between minions
 const SEPARATION_STRENGTH := 0.6  # How strongly to push apart (0-1)
+const SEPARATION_MOVE_THRESHOLD := 0.1  # Min separation force to trigger movement
 
 # Default fallbacks (used if GameConstants.MINION_STATS missing entry)
 const DEFAULT_HP := 10
