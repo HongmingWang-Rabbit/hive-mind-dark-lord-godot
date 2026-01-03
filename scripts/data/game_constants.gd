@@ -200,6 +200,13 @@ const CAMERA_CENTER := Vector2(VIEWPORT_WIDTH / 2.0, VIEWPORT_HEIGHT / 2.0)
 
 #endregion
 
+#region Spatial Grid (performance optimization)
+
+const SPATIAL_GRID_CELL_SIZE := 32.0  # Should be >= separation distance for efficiency
+const SPATIAL_GRID_CLEANUP_INTERVAL := 1.0  # Seconds between dead entity cleanup
+
+#endregion
+
 #region Camera
 
 const TILE_SIZE := 16

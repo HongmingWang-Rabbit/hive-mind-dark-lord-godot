@@ -308,6 +308,10 @@ COLLISION_MASK_WALLS             # Layer 1 only - for friendly units that don't 
 COLLISION_MASK_THREATS           # Layer 2 only - for enemy detection areas
 COLLISION_MASK_CORRUPTED_WORLD   # 1 + 4 - walls + Corrupted World
 COLLISION_MASK_HUMAN_WORLD       # 1 + 5 - walls + Human World
+
+#region Spatial Grid (performance optimization)
+SPATIAL_GRID_CELL_SIZE           # 32.0 - grid cell size (>= separation distance)
+SPATIAL_GRID_CLEANUP_INTERVAL    # 1.0s - dead entity cleanup frequency
 ```
 
 ## Scene Tree (main.tscn)
@@ -493,6 +497,36 @@ TOOLBAR_LABEL_COLOR         # Light purple section headers
 BUILDING_BUTTON_ICON_SIZE   # Vector2i(16, 16) - icon size for building buttons
 ```
 
+## SpatialGrid.gd
+
+Autoload for efficient spatial queries. Reduces O(n²) neighbor checks to O(n).
+
+### Public API
+```gdscript
+update_entity(entity: Node2D)                    # Update entity's grid position (call when moving)
+remove_entity(entity: Node2D)                    # Remove entity from grid (call when dying)
+get_nearby_entities(pos: Vector2, radius: float) # Get entities within radius
+reset()                                          # Clear all data
+```
+
+### How It Works
+- Divides world into cells of `SPATIAL_GRID_CELL_SIZE` pixels
+- Entities register their cell when moving
+- Neighbor queries only check relevant cells instead of all entities
+- Dead entities cleaned up every `SPATIAL_GRID_CLEANUP_INTERVAL` seconds
+
+### Usage Pattern
+```gdscript
+# In _physics_process:
+SpatialGrid.update_entity(self)
+
+# When querying neighbors:
+var nearby := SpatialGrid.get_nearby_entities(global_position, radius)
+
+# In _die():
+SpatialGrid.remove_entity(self)
+```
+
 ## System Reset Flow
 
 ```gdscript
@@ -500,6 +534,7 @@ GameManager.reset_game()  # Resets all systems
     → Essence.reset()     # Reset to STARTING_ESSENCE
     → HivePool.reset()    # Clear all minion pools
     → WorldManager.reset() # Reset to CORRUPTED world, clear portals
+    → SpatialGrid.reset() # Clear spatial grid
 ```
 
 ## CameraController.gd
@@ -929,6 +964,7 @@ SEPARATION_DISTANCE       # float - desired min distance between minions (squad 
 SEPARATION_STRENGTH       # float - how strongly to push apart (0-1)
 SEPARATION_MOVE_THRESHOLD # float - min separation force to trigger movement
 SEPARATION_UPDATE_INTERVAL # float - seconds between separation recalculations (perf)
+SEPARATION_MIN_CHECK_DISTANCE # float - skip calc if entities overlap (avoid div by zero)
 DEFAULT_HP                # int - fallback if MINION_STATS missing
 DEFAULT_SPEED             # float - fallback if MINION_STATS missing
 DEFAULT_DAMAGE            # int - fallback if MINION_STATS missing

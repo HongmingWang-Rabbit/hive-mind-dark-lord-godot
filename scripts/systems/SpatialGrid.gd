@@ -2,9 +2,6 @@ extends Node
 ## Spatial partitioning grid for efficient neighbor queries
 ## Reduces O(n²) neighbor checks to O(n) by only checking nearby cells
 
-# Grid cell size - should be >= separation distance for efficiency
-const CELL_SIZE := 32.0  # 2x SEPARATION_DISTANCE (16)
-
 # Grid storage: Dictionary[Vector2i cell -> Array[Node2D] entities]
 var _grid: Dictionary = {}
 
@@ -15,14 +12,15 @@ var _entity_cells: Dictionary = {}  # Dictionary[Node2D -> Vector2i]
 func _ready() -> void:
 	# Clean up dead entities periodically
 	var cleanup_timer := Timer.new()
-	cleanup_timer.wait_time = 1.0
+	cleanup_timer.wait_time = GameConstants.SPATIAL_GRID_CLEANUP_INTERVAL
 	cleanup_timer.timeout.connect(_cleanup_dead_entities)
 	add_child(cleanup_timer)
 	cleanup_timer.start()
 
 
 func _pos_to_cell(pos: Vector2) -> Vector2i:
-	return Vector2i(floor(pos.x / CELL_SIZE), floor(pos.y / CELL_SIZE))
+	var cell_size := GameConstants.SPATIAL_GRID_CELL_SIZE
+	return Vector2i(floor(pos.x / cell_size), floor(pos.y / cell_size))
 
 
 func update_entity(entity: Node2D) -> void:
@@ -66,7 +64,7 @@ func get_nearby_entities(pos: Vector2, radius: float) -> Array[Node2D]:
 	## Get all entities within radius of position (approximate - checks nearby cells)
 	var result: Array[Node2D] = []
 	var center_cell := _pos_to_cell(pos)
-	var cell_radius := ceili(radius / CELL_SIZE)
+	var cell_radius := ceili(radius / GameConstants.SPATIAL_GRID_CELL_SIZE)
 
 	# Check all cells within range
 	for dx in range(-cell_radius, cell_radius + 1):

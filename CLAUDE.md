@@ -266,6 +266,10 @@ COLLISION_MASK_WALLS              # Layer 1 only - friendly units don't block ea
 COLLISION_MASK_THREATS            # Layer 2 only - enemy detection areas
 COLLISION_MASK_CORRUPTED_WORLD    # Layers 1 + 4
 COLLISION_MASK_HUMAN_WORLD        # Layers 1 + 5
+
+# Spatial Grid (performance optimization for many entities)
+SPATIAL_GRID_CELL_SIZE            # Grid cell size (32.0)
+SPATIAL_GRID_CLEANUP_INTERVAL     # Dead entity cleanup frequency (1.0s)
 ```
 
 ## Changing Tileset

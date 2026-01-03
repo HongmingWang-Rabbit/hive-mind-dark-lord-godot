@@ -256,7 +256,7 @@ func _calculate_separation_force() -> Vector2:
 
 		var entity_pos: Vector2 = entity.global_position
 		var distance := global_position.distance_to(entity_pos)
-		if distance < Data.SEPARATION_DISTANCE and distance > 0.1:
+		if distance < Data.SEPARATION_DISTANCE and distance > Data.SEPARATION_MIN_CHECK_DISTANCE:
 			# Push away from nearby minion, stronger when closer
 			var away := (global_position - entity_pos).normalized()
 			var strength := 1.0 - (distance / Data.SEPARATION_DISTANCE)

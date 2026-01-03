@@ -26,6 +26,7 @@ const SEPARATION_DISTANCE := 30.0  # Desired min distance between minions
 const SEPARATION_STRENGTH := 0.5  # How strongly to push apart (0-1)
 const SEPARATION_MOVE_THRESHOLD := 0.1  # Min separation force to trigger movement
 const SEPARATION_UPDATE_INTERVAL := 0.1  # Seconds between separation recalculations (perf optimization)
+const SEPARATION_MIN_CHECK_DISTANCE := 0.1  # Skip separation calc if entities overlap (avoid div by zero)
 
 # Default fallbacks (used if GameConstants.MINION_STATS missing entry)
 const DEFAULT_HP := 10
