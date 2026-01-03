@@ -27,6 +27,7 @@ func reset_game() -> void:
 	Essence.reset()
 	HivePool.reset()
 	WorldManager.reset()
+	SpatialGrid.reset()
 
 
 func pause_game() -> void:

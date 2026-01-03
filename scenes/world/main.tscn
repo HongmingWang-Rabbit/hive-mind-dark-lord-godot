@@ -24,8 +24,8 @@ tile_set = ExtResource("2_tileset")
 [node name="Entities" type="Node2D" parent="HumanWorld"]
 
 [node name="FogMap" type="TileMapLayer" parent="HumanWorld"]
-tile_set = ExtResource("2_tileset")
 z_index = 100
+tile_set = ExtResource("2_tileset")
 
 [node name="CorruptedWorld" type="Node2D" parent="."]
 
@@ -41,8 +41,8 @@ tile_set = ExtResource("2_tileset")
 [node name="Entities" type="Node2D" parent="CorruptedWorld"]
 
 [node name="FogMap" type="TileMapLayer" parent="CorruptedWorld"]
-tile_set = ExtResource("2_tileset")
 z_index = 100
+tile_set = ExtResource("2_tileset")
 
 [node name="AtmosphereParticles" type="GPUParticles2D" parent="CorruptedWorld"]
 emitting = false

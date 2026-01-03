@@ -9,13 +9,15 @@ GameConstants (uses Enums)
     ↓
 EventBus (no deps)
     ↓
+SpatialGrid (no deps) - Spatial partitioning for efficient neighbor queries
+    ↓
 WorldManager (uses Enums, GameConstants, EventBus)
     ↓
 Essence (uses GameConstants)
     ↓
 HivePool (uses Enums, GameConstants, Essence)
     ↓
-GameManager (uses all above, including WorldManager)
+GameManager (uses all above, including WorldManager, SpatialGrid)
 ```
 
 ## Data Scripts
@@ -926,6 +928,7 @@ ORDER_ARRIVAL_DISTANCE    # float - arrival distance for player orders
 SEPARATION_DISTANCE       # float - desired min distance between minions (squad spacing)
 SEPARATION_STRENGTH       # float - how strongly to push apart (0-1)
 SEPARATION_MOVE_THRESHOLD # float - min separation force to trigger movement
+SEPARATION_UPDATE_INTERVAL # float - seconds between separation recalculations (perf)
 DEFAULT_HP                # int - fallback if MINION_STATS missing
 DEFAULT_SPEED             # float - fallback if MINION_STATS missing
 DEFAULT_DAMAGE            # int - fallback if MINION_STATS missing
@@ -945,6 +948,11 @@ Minions maintain spacing from each other using separation behavior:
 - Force strength inversely proportional to distance (closer = stronger push)
 - Applied in FOLLOW, WANDER, and MOVE_TO states
 - Blended with movement direction to avoid clumping while still reaching targets
+
+### Performance Optimization
+Separation uses two optimizations to handle many minions efficiently:
+1. **SpatialGrid** - Spatial partitioning for O(1) neighbor lookup instead of O(n)
+2. **Cached separation** - Force recalculated every `SEPARATION_UPDATE_INTERVAL` (100ms), not every frame
 
 ### Order System
 - Listens to `EventBus.attack_ordered` and `EventBus.retreat_ordered` signals

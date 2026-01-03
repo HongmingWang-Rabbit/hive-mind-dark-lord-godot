@@ -24,6 +24,7 @@ Open in Godot 4.5 and run. No external build tools required.
 Enums          → Global enums (GameState, MinionType, WorldType, etc.)
 GameConstants  → All balance values and settings
 EventBus       → Signal-based decoupling
+SpatialGrid    → Spatial partitioning for efficient neighbor queries
 WorldManager   → Dual-world state and portal tracking
 Essence        → Resource system (income/drain)
 HivePool       → Minion pool tracking

@@ -23,6 +23,10 @@ var _wander_offset := Vector2.ZERO
 var _order_target := Vector2.ZERO  # Target position for MOVE_TO state
 var _order_stance := Enums.Stance.AGGRESSIVE  # How to behave when reaching target
 
+# Cached separation (performance optimization)
+var _cached_separation := Vector2.ZERO
+var _separation_timer := 0.0
+
 
 func _ready() -> void:
 	add_to_group(GameConstants.GROUP_MINIONS)
@@ -77,7 +81,16 @@ func _setup_combat() -> void:
 	attack_range.body_exited.connect(_on_attack_range_body_exited)
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
+	# Update spatial grid position for efficient neighbor queries
+	SpatialGrid.update_entity(self)
+
+	# Update cached separation force periodically (not every frame)
+	_separation_timer -= delta
+	if _separation_timer <= 0.0:
+		_separation_timer = Data.SEPARATION_UPDATE_INTERVAL
+		_cached_separation = _calculate_separation_force()
+
 	match _state:
 		State.FOLLOW:
 			_process_follow()
@@ -102,8 +115,7 @@ func _process_follow() -> void:
 	if distance > Data.FOLLOW_DISTANCE:
 		# Move toward Dark Lord with separation from other minions
 		var direction := (dark_lord.global_position - global_position).normalized()
-		var separation := _get_separation_force()
-		velocity = (direction + separation).normalized() * speed
+		velocity = (direction + _cached_separation).normalized() * speed
 
 		if velocity.x != 0:
 			sprite.flip_h = velocity.x < 0
@@ -133,13 +145,11 @@ func _process_wander() -> void:
 		return
 
 	# Apply separation even when wandering to maintain squad spacing
-	var separation := _get_separation_force()
-
-	if distance > Data.WANDER_ARRIVAL_DISTANCE or separation.length() > Data.SEPARATION_MOVE_THRESHOLD:
+	if distance > Data.WANDER_ARRIVAL_DISTANCE or _cached_separation.length() > Data.SEPARATION_MOVE_THRESHOLD:
 		var direction := Vector2.ZERO
 		if distance > Data.WANDER_ARRIVAL_DISTANCE:
 			direction = (target - global_position).normalized()
-		velocity = (direction + separation).normalized() * speed
+		velocity = (direction + _cached_separation).normalized() * speed
 
 		if velocity.x != 0:
 			sprite.flip_h = velocity.x < 0
@@ -211,8 +221,7 @@ func _process_move_to() -> void:
 
 	# Move toward target with separation from other minions
 	var direction := (_order_target - global_position).normalized()
-	var separation := _get_separation_force()
-	velocity = (direction + separation).normalized() * speed
+	velocity = (direction + _cached_separation).normalized() * speed
 
 	if velocity.x != 0:
 		sprite.flip_h = velocity.x < 0
@@ -233,21 +242,23 @@ func _get_dark_lord() -> Node2D:
 	return null
 
 
-func _get_separation_force() -> Vector2:
+func _calculate_separation_force() -> Vector2:
 	## Calculate force to push away from nearby minions (squad formation)
+	## Uses SpatialGrid for efficient neighbor lookup instead of checking all minions
 	var separation := Vector2.ZERO
 	var nearby_count := 0
 
-	var minions := get_tree().get_nodes_in_group(GameConstants.GROUP_MINIONS)
-	for minion in minions:
-		if minion == self or not is_instance_valid(minion):
+	# Query spatial grid for nearby entities (much faster than checking all minions)
+	var nearby := SpatialGrid.get_nearby_entities(global_position, Data.SEPARATION_DISTANCE)
+	for entity in nearby:
+		if entity == self or not entity.is_in_group(GameConstants.GROUP_MINIONS):
 			continue
 
-		var minion_pos: Vector2 = minion.global_position
-		var distance := global_position.distance_to(minion_pos)
+		var entity_pos: Vector2 = entity.global_position
+		var distance := global_position.distance_to(entity_pos)
 		if distance < Data.SEPARATION_DISTANCE and distance > 0.1:
 			# Push away from nearby minion, stronger when closer
-			var away := (global_position - minion_pos).normalized()
+			var away := (global_position - entity_pos).normalized()
 			var strength := 1.0 - (distance / Data.SEPARATION_DISTANCE)
 			separation += away * strength
 			nearby_count += 1
@@ -318,6 +329,7 @@ func take_damage(amount: int) -> void:
 
 
 func _die() -> void:
+	SpatialGrid.remove_entity(self)
 	HivePool.on_minion_killed(minion_type)
 	queue_free()
 
