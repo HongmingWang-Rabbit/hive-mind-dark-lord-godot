@@ -567,6 +567,8 @@ Entities implement `set_world_collision(world)` to update their collision layer/
 - Spawn (in `_ready()` or after adding to scene)
 - Portal transfer (`transfer_entity_to_world()` calls it automatically)
 
+For entities with AttackRange (Dark Lord, minions), `set_world_collision()` also updates `attack_range.collision_mask` to detect enemies in the current world.
+
 ### Corruption Tracking
 - `human_corrupted_tiles: Dictionary` - Corruption in Human World (spreads from nodes near portals)
 - `corrupted_corrupted_tiles: Dictionary` - Corruption in Corrupted World (starts with one node)
@@ -826,7 +828,7 @@ scenes/entities/buildings/
 |------|------|--------|
 | Portal | 20 | Travel between worlds (auto-linked, creates corruption in Human World) |
 | Corruption Node | 50 | Auto-spreads corruption + essence income (+2/s) |
-| Spawning Pit | 100 | Secondary minion spawn point |
+| Spawning Pit | 100 | Auto-spawns Crawler minions every 10s (costs essence) |
 
 **Note:** All buildings require corrupted land to place.
 

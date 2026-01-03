@@ -135,6 +135,7 @@ doc/            # Design docs
 - **Arrow keys / WASD**: Pan camera
 - **Middle-mouse drag**: Pan camera
 - **Touch drag**: Pan camera
+- **Mouse scroll**: Zoom in/out (0.5x to 2.0x)
 
 ### Gameplay
 - **Left-click**: Move Dark Lord to position (when no mode active)
@@ -155,7 +156,13 @@ doc/            # Design docs
 - **Corruption Nodes auto-spread** corruption every 2 seconds within their range (5 tiles)
 - **Buildings require corrupted land** - can only place on corrupted tiles
 - **Portals create corruption in Human World** - small area around portal when placed
+- **Human World corruption spreads** from portals OR adjacent to existing corruption (natural spread from nodes)
 - **Game flow**: Start → wait for corruption to spread → build next node → expand → build portal → gather resources in Human World → expand further
+
+### Spawning Pit
+- **Auto-spawns Crawler minions** every 10 seconds (if you can afford it)
+- Uses HivePool system (costs essence like manual spawning)
+- Spawns minions in the same world as the pit
 
 ### UI Interaction Mode (Priority-Based)
 Input is handled in priority order:
@@ -232,6 +239,7 @@ TILEMAP_SOURCE_ID
 VIEWPORT_WIDTH, VIEWPORT_HEIGHT, CAMERA_CENTER
 TILE_SIZE, CAMERA_PAN_SPEED, CAMERA_EDGE_PADDING
 CAMERA_DRAG_BUTTONS, CAMERA_PAN_*_KEYS
+CAMERA_ZOOM_MIN, CAMERA_ZOOM_MAX, CAMERA_ZOOM_STEP
 
 # Input Keys
 KEY_PLACE_PORTAL, KEY_SWITCH_WORLD

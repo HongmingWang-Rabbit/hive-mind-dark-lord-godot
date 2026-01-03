@@ -536,9 +536,12 @@ func corrupt_tile(tile_pos: Vector2i, world: Enums.WorldType = Enums.WorldType.C
 
 	match world:
 		Enums.WorldType.HUMAN:
-			# Check if near a portal
+			# In Human World, corruption can spread:
+			# 1. Near a portal (initial corruption)
+			# 2. Adjacent to existing corruption (natural spread from nodes)
 			if not WorldManager.can_corrupt_in_human_world(tile_pos):
-				return
+				if not _is_adjacent_to_corruption(tile_pos, world):
+					return
 			tiles_dict = human_corrupted_tiles
 			corruption_map = human_corruption_map
 			floor_map = human_floor_map
@@ -633,6 +636,14 @@ func is_tile_corrupted(tile_pos: Vector2i, world: Enums.WorldType) -> bool:
 			return human_corrupted_tiles.has(tile_pos)
 		Enums.WorldType.CORRUPTED:
 			return corrupted_corrupted_tiles.has(tile_pos)
+	return false
+
+
+func _is_adjacent_to_corruption(tile_pos: Vector2i, world: Enums.WorldType) -> bool:
+	## Check if tile is adjacent to any corrupted tile (for natural spread)
+	for dir: Vector2i in GameConstants.ORTHOGONAL_DIRS:
+		if is_tile_corrupted(tile_pos + dir, world):
+			return true
 	return false
 
 

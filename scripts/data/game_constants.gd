@@ -207,6 +207,11 @@ const CAMERA_PAN_RIGHT_KEYS: Array[Key] = [KEY_D]
 const CAMERA_PAN_UP_KEYS: Array[Key] = [KEY_W]
 const CAMERA_PAN_DOWN_KEYS: Array[Key] = [KEY_S]
 
+# Zoom (scroll wheel)
+const CAMERA_ZOOM_MIN := 0.5  # Zoomed out (see more)
+const CAMERA_ZOOM_MAX := 2.0  # Zoomed in (see less)
+const CAMERA_ZOOM_STEP := 0.1  # Zoom change per scroll tick
+
 #endregion
 
 #region Input Keys (Debug/Gameplay)

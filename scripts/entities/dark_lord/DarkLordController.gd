@@ -270,17 +270,18 @@ func set_world_collision(target_world: Enums.WorldType) -> void:
 	## Set collision layer/mask based on which world this entity is in
 	## Called when spawned and when transferring between worlds
 	var world_layer: int
-	var world_mask: int
 	match target_world:
 		Enums.WorldType.CORRUPTED:
 			world_layer = 1 << (GameConstants.COLLISION_LAYER_CORRUPTED_WORLD - 1)
-			world_mask = GameConstants.COLLISION_MASK_CORRUPTED_WORLD
 		Enums.WorldType.HUMAN:
 			world_layer = 1 << (GameConstants.COLLISION_LAYER_HUMAN_WORLD - 1)
-			world_mask = GameConstants.COLLISION_MASK_HUMAN_WORLD
 
-	# Keep layer 2 for threat detection (flee behavior)
+	# Layer: world layer + layer 2 for threat detection (flee behavior)
+	# Mask: only layer 1 (walls) - friendly units don't block each other
 	collision_layer = world_layer | 2
-	collision_mask = world_mask
+	collision_mask = 1
+
+	# Update AttackRange to detect entities in the current world
+	attack_range.collision_mask = world_layer
 
 #endregion

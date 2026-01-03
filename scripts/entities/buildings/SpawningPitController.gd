@@ -1,12 +1,14 @@
 extends StaticBody2D
-## Spawning Pit building - allows spawning minions at this location
+## Spawning Pit building - auto-spawns minions periodically
 ## Place to create secondary spawn points for minions
 
 const Data := preload("res://scripts/entities/buildings/SpawningPitData.gd")
 const FogUtils := preload("res://scripts/utils/fog_utils.gd")
+const MinionScene := preload("res://scenes/entities/minions/minion.tscn")
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
+@onready var spawn_timer: Timer = $SpawnTimer
 
 # Building state
 var tile_pos: Vector2i
@@ -16,6 +18,7 @@ var world: Enums.WorldType
 func _ready() -> void:
 	_setup_collision_shape()
 	_setup_sprite()
+	_setup_spawn_timer()
 	add_to_group(GameConstants.GROUP_BUILDINGS)
 	add_to_group(GameConstants.GROUP_SPAWNING_PITS)
 
@@ -35,6 +38,9 @@ func setup(building_tile_pos: Vector2i, building_world: Enums.WorldType) -> void
 	EventBus.fog_update_requested.emit(world)
 	EventBus.building_placed.emit(Enums.BuildingType.SPAWNING_PIT, global_position)
 
+	# Start spawning minions
+	spawn_timer.start()
+
 
 func _setup_collision_shape() -> void:
 	var shape := CircleShape2D.new()
@@ -52,6 +58,45 @@ func _setup_sprite() -> void:
 	var scale_factor := desired_diameter / max_dimension
 	sprite.scale = Vector2(scale_factor, scale_factor)
 	sprite.modulate = Data.ACTIVE_COLOR
+
+
+func _setup_spawn_timer() -> void:
+	spawn_timer.wait_time = Data.SPAWN_INTERVAL
+	spawn_timer.one_shot = false
+	spawn_timer.timeout.connect(_on_spawn_timer_timeout)
+
+
+func _on_spawn_timer_timeout() -> void:
+	_try_spawn_minion()
+
+
+func _try_spawn_minion() -> void:
+	## Try to spawn a minion at this pit's location
+	var minion_type: Enums.MinionType = Data.SPAWN_TYPE as Enums.MinionType
+
+	# Check if we can afford the minion (uses HivePool which checks essence)
+	if not HivePool.spawn_minion(minion_type):
+		return  # Can't afford or at capacity
+
+	# Get the world node to add minion to correct container
+	var world_node := get_tree().current_scene
+	if world_node == null or not world_node.has_method("get_entities_container"):
+		return
+
+	var minion := MinionScene.instantiate()
+	minion.setup(minion_type)
+
+	# Add to the same world as this pit
+	var container: Node2D = world_node.get_entities_container(world)
+	container.add_child(minion)
+
+	# Position at pit with small random offset
+	var spawn_range := float(GameConstants.TILE_SIZE) * Data.SPAWN_OFFSET_RATIO
+	var offset := Vector2(randf_range(-spawn_range, spawn_range), randf_range(-spawn_range, spawn_range))
+	minion.global_position = global_position + offset
+
+	# Set collision layer to match the world
+	minion.set_world_collision(world)
 
 
 func _set_world_collision_layer(target_world: Enums.WorldType) -> void:

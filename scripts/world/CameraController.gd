@@ -19,6 +19,7 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	## Use _unhandled_input so UI gets priority
 	_handle_drag(event)
+	_handle_zoom(event)
 
 
 ## Center camera on a tile position
@@ -143,3 +144,21 @@ func _clamp_position() -> void:
 		return
 	position.x = clampf(position.x, _bounds.position.x, _bounds.end.x)
 	position.y = clampf(position.y, _bounds.position.y, _bounds.end.y)
+
+
+func _handle_zoom(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		var mouse_event := event as InputEventMouseButton
+		if not mouse_event.pressed:
+			return
+
+		var zoom_change := 0.0
+		if mouse_event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			zoom_change = GameConstants.CAMERA_ZOOM_STEP
+		elif mouse_event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			zoom_change = -GameConstants.CAMERA_ZOOM_STEP
+
+		if zoom_change != 0.0:
+			var new_zoom := zoom.x + zoom_change
+			new_zoom = clampf(new_zoom, GameConstants.CAMERA_ZOOM_MIN, GameConstants.CAMERA_ZOOM_MAX)
+			zoom = Vector2(new_zoom, new_zoom)

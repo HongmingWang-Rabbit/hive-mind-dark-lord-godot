@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=4 uid="uid://spawning_pit_scene"]
 
 [ext_resource type="Script" path="res://scripts/entities/buildings/SpawningPitController.gd" id="1_script"]
-[ext_resource type="Texture2D" uid="uid://corruption_node_sprite" path="res://assets/sprites/buildings/corruption_node.png" id="2_texture"]
+[ext_resource type="Texture2D" path="res://assets/sprites/buildings/spawning_pit.png" id="2_texture"]
 
 [node name="SpawningPit" type="StaticBody2D"]
 script = ExtResource("1_script")
@@ -11,3 +11,5 @@ texture = ExtResource("2_texture")
 texture_filter = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+
+[node name="SpawnTimer" type="Timer" parent="."]
