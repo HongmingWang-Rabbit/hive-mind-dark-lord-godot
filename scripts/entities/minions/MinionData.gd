@@ -21,6 +21,10 @@ const WANDER_DIRECTION_CHANGE_CHANCE := 60  # 1 in N frames to pick new wander t
 # Order behavior
 const ORDER_ARRIVAL_DISTANCE := 8.0  # Consider arrived at order target when this close
 
+# Squad separation (keep minions from clumping)
+const SEPARATION_DISTANCE := 16.0  # Desired min distance between minions
+const SEPARATION_STRENGTH := 0.6  # How strongly to push apart (0-1)
+
 # Default fallbacks (used if GameConstants.MINION_STATS missing entry)
 const DEFAULT_HP := 10
 const DEFAULT_SPEED := 60.0

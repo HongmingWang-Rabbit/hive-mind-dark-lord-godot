@@ -100,9 +100,10 @@ func _process_follow() -> void:
 	var speed: float = stats.get("speed", Data.DEFAULT_SPEED)
 
 	if distance > Data.FOLLOW_DISTANCE:
-		# Move toward Dark Lord
+		# Move toward Dark Lord with separation from other minions
 		var direction := (dark_lord.global_position - global_position).normalized()
-		velocity = direction * speed
+		var separation := _get_separation_force()
+		velocity = (direction + separation).normalized() * speed
 
 		if velocity.x != 0:
 			sprite.flip_h = velocity.x < 0
@@ -131,9 +132,14 @@ func _process_wander() -> void:
 		_state = State.FOLLOW
 		return
 
-	if distance > Data.WANDER_ARRIVAL_DISTANCE:
-		var direction := (target - global_position).normalized()
-		velocity = direction * speed
+	# Apply separation even when wandering to maintain squad spacing
+	var separation := _get_separation_force()
+
+	if distance > Data.WANDER_ARRIVAL_DISTANCE or separation.length() > 0.1:
+		var direction := Vector2.ZERO
+		if distance > Data.WANDER_ARRIVAL_DISTANCE:
+			direction = (target - global_position).normalized()
+		velocity = (direction + separation).normalized() * speed
 
 		if velocity.x != 0:
 			sprite.flip_h = velocity.x < 0
@@ -203,9 +209,10 @@ func _process_move_to() -> void:
 				_state = State.FOLLOW
 		return
 
-	# Move toward target
+	# Move toward target with separation from other minions
 	var direction := (_order_target - global_position).normalized()
-	velocity = direction * speed
+	var separation := _get_separation_force()
+	velocity = (direction + separation).normalized() * speed
 
 	if velocity.x != 0:
 		sprite.flip_h = velocity.x < 0
@@ -224,6 +231,30 @@ func _get_dark_lord() -> Node2D:
 	if lords.size() > 0:
 		return lords[0] as Node2D
 	return null
+
+
+func _get_separation_force() -> Vector2:
+	## Calculate force to push away from nearby minions (squad formation)
+	var separation := Vector2.ZERO
+	var nearby_count := 0
+
+	var minions := get_tree().get_nodes_in_group(GameConstants.GROUP_MINIONS)
+	for minion in minions:
+		if minion == self or not is_instance_valid(minion):
+			continue
+
+		var distance := global_position.distance_to(minion.global_position)
+		if distance < Data.SEPARATION_DISTANCE and distance > 0.1:
+			# Push away from nearby minion, stronger when closer
+			var away := (global_position - minion.global_position).normalized()
+			var strength := 1.0 - (distance / Data.SEPARATION_DISTANCE)
+			separation += away * strength
+			nearby_count += 1
+
+	if nearby_count > 0:
+		separation = separation.normalized() * Data.SEPARATION_STRENGTH
+
+	return separation
 
 
 func _update_attack_target() -> void:
