@@ -243,10 +243,11 @@ func _get_separation_force() -> Vector2:
 		if minion == self or not is_instance_valid(minion):
 			continue
 
-		var distance := global_position.distance_to(minion.global_position)
+		var minion_pos: Vector2 = minion.global_position
+		var distance := global_position.distance_to(minion_pos)
 		if distance < Data.SEPARATION_DISTANCE and distance > 0.1:
 			# Push away from nearby minion, stronger when closer
-			var away := (global_position - minion.global_position).normalized()
+			var away := (global_position - minion_pos).normalized()
 			var strength := 1.0 - (distance / Data.SEPARATION_DISTANCE)
 			separation += away * strength
 			nearby_count += 1
