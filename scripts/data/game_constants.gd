@@ -85,6 +85,11 @@ const MAX_SPECIAL_FORCES := 2
 
 const ENEMY_SPAWN_MARGIN := 2  # Tiles from map edge to spawn
 
+# Random spawning (always active, independent of threat level)
+const RANDOM_ENEMY_SPAWN_ENABLED := true
+const RANDOM_ENEMY_SPAWN_INTERVAL := 15.0  # Seconds between random spawns
+const RANDOM_ENEMY_MAX := 6  # Max random enemies at once
+
 #endregion
 
 #region Entity Groups - Enemies

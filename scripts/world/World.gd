@@ -77,6 +77,7 @@ var _dark_lord: CharacterBody2D
 var _police_spawn_timer: float = 0.0
 var _military_spawn_timer: float = 0.0
 var _heavy_spawn_timer: float = 0.0
+var _random_enemy_spawn_timer: float = 0.0
 var _current_threat_level: Enums.ThreatLevel = Enums.ThreatLevel.NONE
 
 # Interaction mode
@@ -878,6 +879,14 @@ func _on_threat_level_changed(new_level: Enums.ThreatLevel) -> void:
 
 func _process_enemy_spawning(delta: float) -> void:
 	## Process enemy spawn timers based on current threat level
+
+	# Random enemy spawning (always active if enabled)
+	if GameConstants.RANDOM_ENEMY_SPAWN_ENABLED:
+		_random_enemy_spawn_timer += delta
+		if _random_enemy_spawn_timer >= GameConstants.RANDOM_ENEMY_SPAWN_INTERVAL:
+			_random_enemy_spawn_timer = 0.0
+			_try_spawn_random_enemy()
+
 	if _current_threat_level == Enums.ThreatLevel.NONE:
 		return
 
@@ -957,6 +966,32 @@ func _get_enemy_spawn_position() -> Vector2i:
 			return pos
 
 	return Vector2i(-1, -1)
+
+
+func _try_spawn_random_enemy() -> void:
+	## Spawn a random military enemy (always active, independent of threat level)
+	var current_count := get_tree().get_nodes_in_group(GameConstants.GROUP_ENEMIES).size()
+	if current_count >= GameConstants.RANDOM_ENEMY_MAX:
+		return
+
+	# Pick a random enemy type (weighted towards military)
+	var roll := randi_range(0, 99)
+	var enemy_type: Enums.EnemyType
+	if roll < 50:
+		enemy_type = Enums.EnemyType.MILITARY
+	elif roll < 80:
+		enemy_type = Enums.EnemyType.POLICE
+	else:
+		enemy_type = Enums.EnemyType.HEAVY
+
+	var spawn_pos := _get_enemy_spawn_position()
+	if spawn_pos == Vector2i(-1, -1):
+		return
+
+	var enemy := EnemyScene.instantiate()
+	enemy.setup(enemy_type)
+	human_entities.add_child(enemy)
+	enemy.global_position = Vector2(spawn_pos) * GameConstants.TILE_SIZE + Vector2(GameConstants.TILE_SIZE, GameConstants.TILE_SIZE) / 2.0
 
 #endregion
 
