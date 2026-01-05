@@ -4,6 +4,7 @@ extends StaticBody2D
 
 const Data := preload("res://scripts/entities/buildings/PortalData.gd")
 const FogUtils := preload("res://scripts/utils/fog_utils.gd")
+const HealthComponent := preload("res://scripts/components/HealthComponent.gd")
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
@@ -22,11 +23,15 @@ var _travel_cooldown := 0.0
 # Key: entity instance ID, Value: time remaining
 static var _travel_immunity: Dictionary = {}
 
+# Components
+var _health: Node2D
+
 
 func _ready() -> void:
 	_setup_collision_shape()
 	_setup_travel_area()
 	_setup_sprite()
+	_setup_health_component()
 	add_to_group(GameConstants.GROUP_BUILDINGS)
 	add_to_group(GameConstants.GROUP_PORTALS)
 
@@ -175,5 +180,28 @@ func _set_world_collision_layer(target_world: Enums.WorldType) -> void:
 func get_visible_tiles() -> Array[Vector2i]:
 	## Returns array of tiles visible around portal
 	return FogUtils.get_tiles_in_sight_range(tile_pos, Data.SIGHT_RANGE)
+
+#endregion
+
+
+#region Health
+
+func _setup_health_component() -> void:
+	_health = HealthComponent.new()
+	add_child(_health)
+	var stats: Dictionary = GameConstants.BUILDING_STATS.get(Enums.BuildingType.PORTAL, {})
+	var max_hp: int = stats.get("hp", 100)
+	_health.setup(max_hp)
+	_health.died.connect(_die)
+
+
+func take_damage(amount: int) -> void:
+	_health.take_damage(amount)
+
+
+func _die() -> void:
+	# Unregister from WorldManager
+	WorldManager.unregister_portal(tile_pos, world)
+	queue_free()
 
 #endregion

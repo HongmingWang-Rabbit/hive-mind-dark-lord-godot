@@ -90,6 +90,11 @@ const RANDOM_ENEMY_SPAWN_ENABLED := true
 const RANDOM_ENEMY_SPAWN_INTERVAL := 15.0  # Seconds between random spawns
 const RANDOM_ENEMY_MAX := 6  # Max random enemies at once
 
+# Random enemy type weights (cumulative thresholds out of 100)
+const RANDOM_ENEMY_MILITARY_THRESHOLD := 50  # 0-49 = Military (50%)
+const RANDOM_ENEMY_POLICE_THRESHOLD := 80    # 50-79 = Police (30%)
+# 80-99 = Heavy (20%)
+
 #endregion
 
 #region Entity Groups - Enemies
@@ -147,9 +152,10 @@ const MINION_STATS := {
 #region Buildings
 
 const BUILDING_STATS := {
-	Enums.BuildingType.CORRUPTION_NODE: {cost = 50, essence_bonus = 2},
-	Enums.BuildingType.SPAWNING_PIT: {cost = 100, capacity = 5},
-	# Portal stats in PortalData.gd (entity-specific data pattern)
+	Enums.BuildingType.CORRUPTION_NODE: {cost = 50, essence_bonus = 2, hp = 50},
+	Enums.BuildingType.SPAWNING_PIT: {cost = 100, capacity = 5, hp = 80},
+	Enums.BuildingType.PORTAL: {hp = 100},
+	# Portal cost in PortalData.gd (entity-specific data pattern)
 }
 
 #endregion
@@ -250,6 +256,24 @@ const CORRUPTION_COLOR := Color(0.6, 0.2, 0.8, 0.7)
 
 #endregion
 
+#region Health Bar
+
+const HEALTH_BAR_WIDTH := 12.0  # Pixels wide
+const HEALTH_BAR_HEIGHT := 2.0  # Pixels tall
+const HEALTH_BAR_OFFSET_Y := -10.0  # Pixels above entity center
+const HEALTH_BAR_BORDER_WIDTH := 1.0  # Pixels of border around bar
+const HEALTH_BAR_BG_COLOR := Color(0.2, 0.2, 0.2, 0.8)  # Dark background
+const HEALTH_BAR_BORDER_COLOR := Color(0.0, 0.0, 0.0, 0.9)  # Black border
+
+# Health thresholds and colors
+const HEALTH_BAR_HIGH_THRESHOLD := 0.6  # Above this = green
+const HEALTH_BAR_LOW_THRESHOLD := 0.3  # Below this = red, between = yellow
+const HEALTH_BAR_HIGH_COLOR := Color(0.2, 0.8, 0.2, 1.0)  # Green
+const HEALTH_BAR_MED_COLOR := Color(0.9, 0.8, 0.1, 1.0)  # Yellow
+const HEALTH_BAR_LOW_COLOR := Color(0.9, 0.2, 0.2, 1.0)  # Red
+
+#endregion
+
 #region Cursor Preview
 
 const CURSOR_PREVIEW_COLOR := Color(1.0, 1.0, 1.0, 0.7)  # Semi-transparent white
@@ -260,6 +284,8 @@ const ORDER_CURSOR_COLOR := Color(1.0, 0.3, 0.3, 0.8)  # Red for attack orders
 const ORDER_CURSOR_DEFEND_COLOR := Color(0.3, 0.5, 1.0, 0.8)  # Blue for defend orders
 const ORDER_CURSOR_SCOUT_COLOR := Color(0.3, 1.0, 0.5, 0.8)  # Green for scout orders
 const ORDER_CURSOR_SIZE := 12.0  # Diameter of order cursor circle
+const ORDER_CURSOR_RING_WIDTH := 2.0  # Width of the ring outline
+const ORDER_CURSOR_CENTER_ALPHA := 0.3  # Alpha of the center fill
 
 #endregion
 

@@ -3,6 +3,7 @@ extends CharacterBody2D
 ## Spawned via hotkeys, adds to HivePool
 
 const Data := preload("res://scripts/entities/minions/MinionData.gd")
+const HealthComponent := preload("res://scripts/components/HealthComponent.gd")
 
 enum State { FOLLOW, ATTACK, WANDER, MOVE_TO }
 
@@ -15,7 +16,6 @@ enum State { FOLLOW, ATTACK, WANDER, MOVE_TO }
 var minion_type: Enums.MinionType = Enums.MinionType.CRAWLER
 
 # State
-var _hp: int
 var _state := State.FOLLOW
 var _current_target: Node2D = null
 var _targets_in_range: Array[Node2D] = []
@@ -26,6 +26,9 @@ var _order_stance := Enums.Stance.AGGRESSIVE  # How to behave when reaching targ
 # Cached separation (performance optimization)
 var _cached_separation := Vector2.ZERO
 var _separation_timer := 0.0
+
+# Components
+var _health: Node2D
 
 
 func _ready() -> void:
@@ -46,7 +49,8 @@ func setup(type: Enums.MinionType) -> void:
 	## Call after instantiation to configure minion type
 	minion_type = type
 	var stats: Dictionary = GameConstants.MINION_STATS.get(type, {})
-	_hp = stats.get("hp", Data.DEFAULT_HP)
+	var max_hp: int = stats.get("hp", Data.DEFAULT_HP)
+	_setup_health_component(max_hp)
 
 
 func _setup_collision_shape() -> void:
@@ -79,6 +83,13 @@ func _setup_combat() -> void:
 	# Connect signals
 	attack_range.body_entered.connect(_on_attack_range_body_entered)
 	attack_range.body_exited.connect(_on_attack_range_body_exited)
+
+
+func _setup_health_component(max_hp: int) -> void:
+	_health = HealthComponent.new()
+	add_child(_health)
+	_health.setup(max_hp)
+	_health.died.connect(_die)
 
 
 func _physics_process(delta: float) -> void:
@@ -305,7 +316,8 @@ func _on_attack_timer_timeout() -> void:
 #region Combat Detection
 
 func _on_attack_range_body_entered(body: Node2D) -> void:
-	if body.is_in_group(GameConstants.GROUP_KILLABLE):
+	# Target killable entities (civilians, animals) AND enemies (military, police)
+	if body.is_in_group(GameConstants.GROUP_KILLABLE) or body.is_in_group(GameConstants.GROUP_ENEMIES):
 		_targets_in_range.append(body)
 		if _state != State.ATTACK:
 			_current_target = body
@@ -323,9 +335,7 @@ func _on_attack_range_body_exited(body: Node2D) -> void:
 #region Combat
 
 func take_damage(amount: int) -> void:
-	_hp -= amount
-	if _hp <= 0:
-		_die()
+	_health.take_damage(amount)
 
 
 func _die() -> void:

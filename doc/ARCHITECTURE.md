@@ -4,19 +4,19 @@
 
 ```
 Enums (no deps)
-    ↓
+	↓
 GameConstants (uses Enums)
-    ↓
+	↓
 EventBus (no deps)
-    ↓
+	↓
 SpatialGrid (no deps) - Spatial partitioning for efficient neighbor queries
-    ↓
+	↓
 WorldManager (uses Enums, GameConstants, EventBus)
-    ↓
+	↓
 Essence (uses GameConstants)
-    ↓
+	↓
 HivePool (uses Enums, GameConstants, Essence)
-    ↓
+	↓
 GameManager (uses all above, including WorldManager, SpatialGrid)
 ```
 
@@ -75,6 +75,46 @@ var tiles := FogUtils.get_tiles_in_sight_range(center, range)
 - Constants available at parse time (no runtime dependency issues)
 - Explicit dependency declaration in each file that uses it
 - Avoids Godot editor caching issues with class_name + autoload
+
+### Components (composition pattern)
+Reusable components that can be added to any entity.
+
+#### HealthComponent
+Tracks HP and displays a health bar. Used by all combat entities.
+
+```gdscript
+const HealthComponent := preload("res://scripts/components/HealthComponent.gd")
+
+var _health: Node2D
+
+func _ready() -> void:
+    _setup_health_component()
+
+func _setup_health_component() -> void:
+    _health = HealthComponent.new()
+    add_child(_health)
+    _health.setup(max_hp)
+    _health.died.connect(_die)
+
+func take_damage(amount: int) -> void:
+    _health.take_damage(amount)
+```
+
+**HealthComponent API:**
+- `setup(max_hp, current_hp)` - Initialize health (current defaults to max)
+- `take_damage(amount)` - Apply damage, emit signals, trigger death
+- `heal(amount)` - Heal up to max HP
+- `get_hp()` / `get_max_hp()` / `is_alive()` - Queries
+- Signal `died` - Emitted when HP reaches 0
+- Signal `health_changed(current, max)` - Emitted on any HP change
+
+**HealthBar (internal):**
+The HealthComponent automatically creates a HealthBar child that displays:
+- Hidden when HP = 100% (only shows when damaged)
+- Green bar when HP > 60%
+- Yellow bar when HP 30-60%
+- Red bar when HP < 30%
+All visual constants in GameConstants (HEALTH_BAR_*)
 
 ## Enums Reference
 
@@ -212,7 +252,7 @@ ANIMAL_HP               # 10 - keep synced with AnimalData.HP
 MINION_STATS[MinionType] = {cost, upkeep, hp, damage, speed}
 
 #region Buildings
-BUILDING_STATS[BuildingType] = {cost, ...}  # Portal uses PortalData.gd instead
+BUILDING_STATS[BuildingType] = {cost, hp, ...}  # Buildings have HP, can be destroyed by enemies
 
 #region Corruption Spread
 CORRUPTION_SPREAD_INTERVAL      # Seconds between node spread ticks (2.0)
@@ -272,6 +312,8 @@ ORDER_CURSOR_COLOR      # Color(1.0, 0.3, 0.3, 0.8) - red for attack orders
 ORDER_CURSOR_DEFEND_COLOR  # Color(0.3, 0.5, 1.0, 0.8) - blue for defend
 ORDER_CURSOR_SCOUT_COLOR   # Color(0.3, 1.0, 0.5, 0.8) - green for scout
 ORDER_CURSOR_SIZE       # 12.0 - diameter of order cursor circle
+ORDER_CURSOR_RING_WIDTH # 2.0 - width of the ring outline
+ORDER_CURSOR_CENTER_ALPHA  # 0.3 - alpha of center fill
 
 #region Directions
 ORTHOGONAL_DIRS         # [Vector2i] - 4 cardinal directions
@@ -312,6 +354,19 @@ COLLISION_MASK_HUMAN_WORLD       # 1 + 5 - walls + Human World
 #region Spatial Grid (performance optimization)
 SPATIAL_GRID_CELL_SIZE           # 32.0 - grid cell size (>= separation distance)
 SPATIAL_GRID_CLEANUP_INTERVAL    # 1.0s - dead entity cleanup frequency
+
+#region Health Bar (visual feedback)
+HEALTH_BAR_WIDTH                 # 12.0 - pixels wide
+HEALTH_BAR_HEIGHT                # 2.0 - pixels tall
+HEALTH_BAR_OFFSET_Y              # -10.0 - pixels above entity center
+HEALTH_BAR_BORDER_WIDTH          # 1.0 - border thickness
+HEALTH_BAR_BG_COLOR              # Dark background color
+HEALTH_BAR_BORDER_COLOR          # Black border color
+HEALTH_BAR_HIGH_THRESHOLD        # 0.6 - above this = green
+HEALTH_BAR_LOW_THRESHOLD         # 0.3 - below this = red, between = yellow
+HEALTH_BAR_HIGH_COLOR            # Green (healthy)
+HEALTH_BAR_MED_COLOR             # Yellow (damaged)
+HEALTH_BAR_LOW_COLOR             # Red (critical)
 ```
 
 ## Scene Tree (main.tscn)
@@ -578,15 +633,67 @@ get_portals_in_world(world)          # Get all portal positions
 reset()                              # Reset to initial state
 ```
 
-## World.gd Responsibilities
+## World.gd Architecture
 
-1. **Dual World Management** - Two parallel worlds with identical terrain
-2. **Map Generation** - Procedural floor, buildings, props (same in both worlds)
-3. **Corruption System** - Per-world corruption tracking (both worlds start with small initial area)
-4. **World Switching** - Toggle visibility based on WorldManager.active_world
-5. **Entity Management** - Per-world entity containers, entity transfer between worlds
-6. **Atmosphere Particles** - Visual effects in Corrupted World
-7. **Fog of War** - Per-world fog that reveals via entity sight and corruption spread
+World.gd is an orchestrator that delegates to specialized managers (RefCounted classes).
+
+### Manager Structure
+```
+scripts/world/
+├── World.gd              # Orchestrator (~400 lines)
+├── MapGenerator.gd       # Procedural map generation
+├── CorruptionManager.gd  # Corruption spreading and tracking
+├── FogManager.gd         # Fog of war visibility
+├── InputManager.gd       # Input handling, cursor preview, interaction modes
+├── EntitySpawner.gd      # Entity spawning (Dark Lord, civilians, animals, minions)
+└── EnemySpawner.gd       # Threat-based enemy spawning
+```
+
+### Manager Pattern
+Managers extend `RefCounted` (lightweight, script-only) and receive World reference via `setup()`:
+```gdscript
+# Manager pattern
+extends RefCounted
+## Description of manager
+
+var _world: Node2D
+
+func setup(world: Node2D, ...) -> void:
+    _world = world
+```
+
+### World.gd Orchestration
+```gdscript
+# Preload managers
+const MapGenerator := preload("res://scripts/world/MapGenerator.gd")
+# ... other managers
+
+var _map_generator: RefCounted
+# ... other manager references
+
+func _ready() -> void:
+    _init_managers()  # Create and wire up managers
+    _map_generator.generate_map()
+    # ...
+
+func _process(delta: float) -> void:
+    _enemy_spawner.process(delta)  # Delegate processing
+    _input_manager.update_cursor_preview()
+
+func _unhandled_input(event: InputEvent) -> void:
+    _input_manager.handle_input(event)  # Delegate input
+```
+
+### Responsibilities
+| Component | Responsibility |
+|-----------|----------------|
+| World.gd | Orchestrator, node references, world switching, building placement |
+| MapGenerator | Procedural terrain, buildings, props |
+| CorruptionManager | Corruption spreading, tracking, win condition |
+| FogManager | Fog of war visibility, reveal on movement/corruption |
+| InputManager | Input handling, cursor preview, interaction modes |
+| EntitySpawner | Dark Lord, civilians, animals, minions |
+| EnemySpawner | Threat-based enemy spawning |
 
 ### Tile Layers (per world)
 | Layer | Human World | Corrupted World |
@@ -676,31 +783,56 @@ const Data := preload("res://scripts/entities/dark_lord/DarkLordData.gd")
 # DarkLordData.gd constants (entity-specific, non-balance):
 COLLISION_RADIUS    # float - physics collision size (also drives sprite scale)
 SPRITE_SIZE_RATIO   # float - sprite size relative to collision (1.0 = match)
-WANDER_SPEED        # float - movement speed when wandering
-MOVE_SPEED          # float - movement speed when player commands (faster)
+WANDER_SPEED        # float - movement speed when wandering (30.0)
+MOVE_SPEED          # float - movement speed when player commands (80.0)
+CHASE_SPEED         # float - movement speed when chasing enemies (70.0)
 WANDER_INTERVAL_MIN # float - min wait between moves
 WANDER_INTERVAL_MAX # float - max wait between moves
+DETECTION_RADIUS    # float - range to detect and chase enemies (64px, ~4 tiles)
 SIGHT_RANGE         # int - tiles visible around Dark Lord (fog of war)
+INVALID_TILE_POS    # Vector2i - marker for uninitialized tile position
 
 # Combat balance values are in GameConstants:
 # DARK_LORD_HP, DARK_LORD_DAMAGE, DARK_LORD_ATTACK_RANGE, DARK_LORD_ATTACK_COOLDOWN
 ```
 
-### Current Behavior
-- **Click-to-move**: Player left-clicks to move Dark Lord to position (uses `MOVE_SPEED`)
-- Wanders randomly in 8 directions when idle (uses `WANDER_SPEED`)
-- Moves one tile at a time when wandering
-- Waits random interval between wandering moves
-- Reveals fog in sight range when moving (via `get_visible_tiles()`)
-- **Auto-attacks** killable entities (civilians, animals) in range
-- Listens to `EventBus.dark_lord_move_ordered` signal for player commands
+### State Machine
+The Dark Lord uses a state machine for behavior:
+
+| State | Description |
+|-------|-------------|
+| IDLE | Stationary, checking for targets, waiting to wander |
+| WANDER | Moving to random adjacent tile (uses `WANDER_SPEED`) |
+| MOVE_TO | Player-commanded movement (uses `MOVE_SPEED`, ignores enemies) |
+| CHASE | Pursuing detected enemy (uses `CHASE_SPEED`) |
+| ATTACK | Attacking target in range (stationary) |
+
+**State Transitions:**
+- IDLE/WANDER → ATTACK: Target enters attack range
+- IDLE/WANDER → CHASE: Enemy detected in detection range (no attack target)
+- CHASE → ATTACK: Chase target enters attack range
+- ATTACK → CHASE: Target moves out of attack range
+- ATTACK → IDLE: Target dies, no other targets
+- MOVE_TO → ATTACK: Arrived at destination with target in range
+- MOVE_TO → IDLE: Arrived at destination, no targets
+
+### Detection vs Attack Range
+Two separate Area2D zones:
+
+| Area | Radius | Purpose |
+|------|--------|---------|
+| DetectionArea | `Data.DETECTION_RADIUS` (64px, ~4 tiles) | Detects enemies to chase |
+| AttackRange | `GameConstants.DARK_LORD_ATTACK_RANGE` (16px, 1 tile) | Detects targets to attack |
+
+**Detection targets:** `GROUP_ENEMIES` (military, police, etc.)
+**Attack targets:** `GROUP_KILLABLE` (civilians, animals) + `GROUP_ENEMIES`
 
 ### Combat System
-- **AttackRange Area2D** detects entities in `GROUP_KILLABLE` group
-- Auto-attacks target with `GameConstants.DARK_LORD_DAMAGE`
-- Attack cooldown prevents spam (`Data.ATTACK_COOLDOWN`)
+- Attack cooldown controlled by `GameConstants.DARK_LORD_ATTACK_COOLDOWN`
+- Damage dealt: `GameConstants.DARK_LORD_DAMAGE`
 - Calls `take_damage()` on target entities
-- When target HP depletes: entity dies, Dark Lord gains essence
+- When target HP depletes: entity dies, Dark Lord gains essence (for killables)
+- Listens to `EventBus.dark_lord_move_ordered` for player commands
 
 ### Scene Structure (dark_lord.tscn)
 ```
@@ -709,8 +841,10 @@ DarkLord [CharacterBody2D] (DarkLordController.gd)
 ├── CollisionShape2D - Physics collision (radius from Data.COLLISION_RADIUS)
 ├── WanderTimer - Controls movement timing
 ├── AttackTimer - Cooldown between attacks (one_shot)
-└── AttackRange [Area2D] - Detects killable entities
-    └── CollisionShape2D - Attack detection radius
+├── AttackRange [Area2D] - Detects attack targets (GROUP_KILLABLE + GROUP_ENEMIES)
+│   └── CollisionShape2D - Attack detection radius (DARK_LORD_ATTACK_RANGE)
+└── DetectionArea [Area2D] (created dynamically) - Detects enemies for chasing
+	└── CollisionShape2D - Detection radius (Data.DETECTION_RADIUS)
 ```
 
 ## Human World Entities
@@ -753,21 +887,29 @@ WANDER_INTERVAL_MAX # float - max wait between moves
 - Animals move slower than civilians
 
 ### Combat Interface
-Entities implement `take_damage(amount: int)`. HP is initialized from GameConstants:
+Combat entities use HealthComponent for HP tracking and health bar display:
 ```gdscript
+const HealthComponent := preload("res://scripts/components/HealthComponent.gd")
+
+var _health: Node2D
+
 func _ready() -> void:
-    _hp = GameConstants.CIVILIAN_HP  # or ANIMAL_HP
-    add_to_group(GameConstants.GROUP_KILLABLE)
+	add_to_group(GameConstants.GROUP_KILLABLE)
+	_setup_health_component()
+
+func _setup_health_component() -> void:
+	_health = HealthComponent.new()
+	add_child(_health)
+	_health.setup(GameConstants.CIVILIAN_HP)  # or ANIMAL_HP
+	_health.died.connect(_die)
 
 func take_damage(amount: int) -> void:
-    _hp -= amount
-    if _hp <= 0:
-        _die()
+	_health.take_damage(amount)
 
 func _die() -> void:
-    EventBus.entity_killed.emit(global_position, Enums.HumanType.CIVILIAN)
-    Essence.modify(GameConstants.ESSENCE_PER_CIVILIAN)
-    queue_free()
+	EventBus.entity_killed.emit(global_position, Enums.HumanType.CIVILIAN)
+	Essence.modify(GameConstants.ESSENCE_PER_CIVILIAN)
+	queue_free()
 ```
 
 ### Groups
@@ -831,7 +973,7 @@ Portal [StaticBody2D] (PortalController.gd)
 ├── Sprite2D - Visual representation
 ├── CollisionShape2D - Physics collision
 └── TravelArea [Area2D] - Detects travellable entities
-    └── CollisionShape2D - Travel trigger radius
+	└── CollisionShape2D - Travel trigger radius
 ```
 
 ### Travel Mechanic
@@ -870,13 +1012,19 @@ scenes/entities/buildings/
 ```
 
 ### Building Types
-| Type | Cost | Effect |
-|------|------|--------|
-| Portal | 20 | Travel between worlds (auto-linked, creates corruption in Human World) |
-| Corruption Node | 50 | Auto-spreads corruption + essence income (+2/s) |
-| Spawning Pit | 100 | Auto-spawns minions every `SPAWN_INTERVAL` seconds |
+| Type | Cost | HP | Effect |
+|------|------|-----|--------|
+| Portal | 20 | 100 | Travel between worlds (auto-linked, creates corruption in Human World) |
+| Corruption Node | 50 | 50 | Auto-spreads corruption + essence income (+2/s) |
+| Spawning Pit | 100 | 80 | Auto-spawns minions every `SPAWN_INTERVAL` seconds |
 
-**Note:** All buildings require corrupted land to place.
+**Note:** All buildings require corrupted land to place. Buildings have HP and can be destroyed by enemies.
+
+### Building Health
+All buildings use HealthComponent for HP tracking:
+- Health bars only visible when damaged (hidden at 100% HP)
+- Enemies in GROUP_ENEMIES detect and attack buildings
+- On destruction: building removed, effects cease (e.g., essence income stops)
 
 ### Spawning Pit Behavior
 The Spawning Pit auto-spawns minions using HivePool:
@@ -998,7 +1146,7 @@ Separation uses two optimizations to handle many minions efficiently:
   - **RETREAT**: Move to position, then return to following Dark Lord
 
 ### Combat
-- Auto-attack entities in GROUP_KILLABLE
+- Auto-attack entities in GROUP_KILLABLE (civilians, animals) and GROUP_ENEMIES (military, police, etc.)
 - Damage/speed from GameConstants.MINION_STATS (with Data fallbacks)
 - On death: removed from HivePool, upkeep removed
 
@@ -1033,9 +1181,15 @@ scenes/entities/enemies/
 | CHASE | Pursue detected threats |
 | ATTACK | Attack threats in range |
 
+### Combat Targeting
+- Detects and attacks entities in GROUP_THREATS (Dark Lord, minions)
+- Also attacks player buildings in GROUP_BUILDINGS (portals, corruption nodes, spawning pits)
+- Buildings have HP and can be destroyed
+
 ### Spawning
 - Triggered by threat level changes (corruption %)
 - Spawns at map edges in Human World
+- Random spawning (independent of threat) with configurable weights
 - Max count limits per type
 
 ---
@@ -1090,10 +1244,10 @@ scenes/ui/
 EvolveModal [CanvasLayer, layer=10, process_mode=ALWAYS]
 ├── ColorRect - Semi-transparent overlay
 └── Panel [PanelContainer]
-    └── VBox [VBoxContainer]
-        ├── TitleLabel
-        ├── ContentLabel
-        └── CloseBtn
+	└── VBox [VBoxContainer]
+		├── TitleLabel
+		├── ContentLabel
+		└── CloseBtn
 ```
 
 ---
@@ -1115,20 +1269,21 @@ FogUtils.get_tiles_in_sight_range(center: Vector2i, sight_range: int) -> Array[V
 const FogUtils := preload("res://scripts/utils/fog_utils.gd")
 
 func get_visible_tiles() -> Array[Vector2i]:
-    var center := Vector2i(global_position / GameConstants.TILE_SIZE)
-    return FogUtils.get_tiles_in_sight_range(center, Data.SIGHT_RANGE)
+	var center := Vector2i(global_position / GameConstants.TILE_SIZE)
+	return FogUtils.get_tiles_in_sight_range(center, Data.SIGHT_RANGE)
 ```
 
 ### Continuous Fog Reveal During Movement
 For smooth fog reveal as entities move (not just when stopping), track the last tile position:
 ```gdscript
-var _last_tile_pos: Vector2i = Vector2i(-999, -999)
+# Use a constant for the invalid position marker
+var _last_tile_pos: Vector2i = Data.INVALID_TILE_POS  # or Vector2i(-999, -999) if no Data
 
 func _check_fog_update() -> void:
-    var current_tile := Vector2i(global_position / GameConstants.TILE_SIZE)
-    if current_tile != _last_tile_pos:
-        _last_tile_pos = current_tile
-        EventBus.fog_update_requested.emit(WorldManager.active_world)
+	var current_tile := Vector2i(global_position / GameConstants.TILE_SIZE)
+	if current_tile != _last_tile_pos:
+		_last_tile_pos = current_tile
+		EventBus.fog_update_requested.emit(WorldManager.active_world)
 ```
 Call `_check_fog_update()` in `_ready()` and during movement (e.g., in `_move_toward_target()`).
 

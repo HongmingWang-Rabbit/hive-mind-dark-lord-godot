@@ -3,6 +3,7 @@ extends CharacterBody2D
 ## Spawned by threat system based on corruption level
 
 const Data := preload("res://scripts/entities/enemies/EnemyData.gd")
+const HealthComponent := preload("res://scripts/components/HealthComponent.gd")
 
 enum State { PATROL, CHASE, ATTACK }
 
@@ -17,7 +18,6 @@ enum State { PATROL, CHASE, ATTACK }
 var enemy_type: Enums.EnemyType = Enums.EnemyType.POLICE
 
 # State
-var _hp: int
 var _damage: int
 var _speed: float
 var _state := State.PATROL
@@ -27,6 +27,9 @@ var _chase_target: Node2D = null
 var _attack_target: Node2D = null
 var _threats_detected: Array[Node2D] = []
 var _threats_in_attack_range: Array[Node2D] = []
+
+# Components
+var _health: Node2D
 
 
 func _ready() -> void:
@@ -45,27 +48,29 @@ func _ready() -> void:
 func setup(type: Enums.EnemyType) -> void:
 	## Call after instantiation to configure enemy type
 	enemy_type = type
+	var max_hp: int
 	match type:
 		Enums.EnemyType.POLICE:
-			_hp = GameConstants.POLICE_HP
+			max_hp = GameConstants.POLICE_HP
 			_damage = GameConstants.POLICE_DAMAGE
 			_speed = GameConstants.POLICE_SPEED
 			add_to_group(GameConstants.GROUP_POLICE)
 		Enums.EnemyType.MILITARY:
-			_hp = GameConstants.MILITARY_HP
+			max_hp = GameConstants.MILITARY_HP
 			_damage = GameConstants.MILITARY_DAMAGE
 			_speed = GameConstants.MILITARY_SPEED
 			add_to_group(GameConstants.GROUP_MILITARY)
 		Enums.EnemyType.HEAVY:
-			_hp = GameConstants.HEAVY_HP
+			max_hp = GameConstants.HEAVY_HP
 			_damage = GameConstants.HEAVY_DAMAGE
 			_speed = GameConstants.HEAVY_SPEED
 			add_to_group(GameConstants.GROUP_HEAVY)
 		Enums.EnemyType.SPECIAL_FORCES:
-			_hp = GameConstants.SPECIAL_FORCES_HP
+			max_hp = GameConstants.SPECIAL_FORCES_HP
 			_damage = GameConstants.SPECIAL_FORCES_DAMAGE
 			_speed = GameConstants.SPECIAL_FORCES_SPEED
 			add_to_group(GameConstants.GROUP_SPECIAL_FORCES)
+	_setup_health_component(max_hp)
 
 
 func _setup_collision_shape() -> void:
@@ -113,6 +118,13 @@ func _setup_combat() -> void:
 	patrol_timer.wait_time = Data.PATROL_INTERVAL
 	patrol_timer.one_shot = true
 	patrol_timer.start()
+
+
+func _setup_health_component(max_hp: int) -> void:
+	_health = HealthComponent.new()
+	add_child(_health)
+	_health.setup(max_hp)
+	_health.died.connect(_die)
 
 
 func _physics_process(_delta: float) -> void:
@@ -235,7 +247,8 @@ func _on_patrol_timer_timeout() -> void:
 #region Detection
 
 func _on_detection_area_body_entered(body: Node2D) -> void:
-	if body.is_in_group(GameConstants.GROUP_THREATS):
+	# Detect threats (Dark Lord, minions) AND player buildings
+	if body.is_in_group(GameConstants.GROUP_THREATS) or body.is_in_group(GameConstants.GROUP_BUILDINGS):
 		_threats_detected.append(body)
 		if _state == State.PATROL:
 			_chase_target = body
@@ -249,7 +262,8 @@ func _on_detection_area_body_exited(body: Node2D) -> void:
 
 
 func _on_attack_range_body_entered(body: Node2D) -> void:
-	if body.is_in_group(GameConstants.GROUP_THREATS):
+	# Target threats (Dark Lord, minions) AND player buildings (portals, corruption nodes, spawning pits)
+	if body.is_in_group(GameConstants.GROUP_THREATS) or body.is_in_group(GameConstants.GROUP_BUILDINGS):
 		_threats_in_attack_range.append(body)
 		if _attack_target == null:
 			_attack_target = body
@@ -267,9 +281,7 @@ func _on_attack_range_body_exited(body: Node2D) -> void:
 #region Combat
 
 func take_damage(amount: int) -> void:
-	_hp -= amount
-	if _hp <= 0:
-		_die()
+	_health.take_damage(amount)
 
 
 func _die() -> void:

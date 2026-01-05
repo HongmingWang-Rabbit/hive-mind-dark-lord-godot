@@ -65,6 +65,23 @@ GameManager    → Game state, win/lose conditions
   var tiles := FogUtils.get_tiles_in_sight_range(center, range)
   ```
 
+### Components (composition pattern)
+- `HealthComponent` - Reusable HP tracking + health bar display:
+  ```gdscript
+  const HealthComponent := preload("res://scripts/components/HealthComponent.gd")
+
+  var _health: Node2D
+
+  func _ready() -> void:
+      _health = HealthComponent.new()
+      add_child(_health)
+      _health.setup(max_hp)
+      _health.died.connect(_die)
+
+  func take_damage(amount: int) -> void:
+      _health.take_damage(amount)
+  ```
+
 ### Communication Pattern
 - **Events:** Systems communicate via `EventBus` signals
 - **Queries:** Direct autoload access for state (e.g., `Essence.can_afford(cost)`)
@@ -90,7 +107,17 @@ GameManager    → Game state, win/lose conditions
 scripts/
   data/         # Enums, GameConstants, TileData
   systems/      # Autoloads (GameManager, Essence, HivePool, EventBus, WorldManager)
-  world/        # World.gd, CameraController.gd
+  world/        # World system (manager pattern)
+    World.gd              # Orchestrator
+    CameraController.gd   # Camera movement and zoom
+    MapGenerator.gd       # Procedural map generation
+    CorruptionManager.gd  # Corruption spreading and tracking
+    FogManager.gd         # Fog of war visibility
+    EntitySpawner.gd      # Entity spawning
+    EnemySpawner.gd       # Threat-based enemy spawning
+    InputManager.gd       # Input handling, interaction modes
+  components/   # Reusable components (composition pattern)
+    HealthComponent.gd  # HP tracking + health bar display
   entities/     # Entity scripts organized by entity type
     dark_lord/  # DarkLordData.gd, DarkLordController.gd
     buildings/  # PortalData/Controller, CorruptionNodeData/Controller, SpawningPitData/Controller
@@ -100,6 +127,7 @@ scripts/
   ui/           # UI controller scripts
     HUDController.gd
     UITheme.gd     # UI colors and styling constants
+    HealthBar.gd   # Visual health bar component (used by HealthComponent)
     EvolveModal.gd # Placeholder evolution modal
     GameOverScreen.gd
   utils/        # Utility scripts (preload pattern)
@@ -126,7 +154,16 @@ doc/            # Design docs
 ## Documentation
 
 - `doc/GAME_DESIGN.md` - Mechanics, units, win/lose
-- `doc/ARCHITECTURE.md` - System dependencies, signals, constants reference
+- `doc/architecture/` - Technical architecture (modular docs):
+  - `README.md` - Overview, autoload graph, data patterns, components
+  - `constants.md` - GameConstants reference, Enums
+  - `signals.md` - EventBus signals
+  - `systems.md` - Autoloads (SpatialGrid, WorldManager, etc.)
+  - `world.md` - World.gd, Scene Tree, Corruption, Fog of War
+  - `entities.md` - Dark Lord, Minions, Enemies, Human Entities
+  - `buildings.md` - Portal, Corruption Node, Spawning Pit
+  - `ui.md` - HUD, UITheme, Game Over Screen
+  - `guides.md` - How to add new features
 - `doc/TILE_REFERENCE.md` - Atlas coordinates
 - `doc/JAM_SCOPE.md` - 7-day priorities
 
@@ -270,6 +307,12 @@ COLLISION_MASK_HUMAN_WORLD        # Layers 1 + 5
 # Spatial Grid (performance optimization for many entities)
 SPATIAL_GRID_CELL_SIZE            # Grid cell size (32.0)
 SPATIAL_GRID_CLEANUP_INTERVAL     # Dead entity cleanup frequency (1.0s)
+
+# Health Bar (visual feedback)
+HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT, HEALTH_BAR_OFFSET_Y, HEALTH_BAR_BORDER_WIDTH
+HEALTH_BAR_BG_COLOR, HEALTH_BAR_BORDER_COLOR
+HEALTH_BAR_HIGH_THRESHOLD, HEALTH_BAR_LOW_THRESHOLD  # Color change thresholds
+HEALTH_BAR_HIGH_COLOR, HEALTH_BAR_MED_COLOR, HEALTH_BAR_LOW_COLOR
 ```
 
 ## Changing Tileset
@@ -297,5 +340,5 @@ const CHAR_SKELETON := Vector2i(3, 7)
 - Set configurable scene values (scale, collision shapes) from Data in `_ready()`
 - For entity visibility (fog), implement `get_visible_tiles()` using `FogUtils.get_tiles_in_sight_range()`
 - For continuous fog reveal during movement, track `_last_tile_pos` and call fog update when crossing tile boundaries
-- For killable entities: init HP from `GameConstants.*_HP`, implement `take_damage()`, add to `GROUP_KILLABLE`
+- For killable entities: use `HealthComponent`, connect `died` signal, implement `take_damage()` to delegate, add to `GROUP_KILLABLE`
 - For world-separated collision: implement `set_world_collision(world)` to set layer/mask, call when spawning and on portal transfer
