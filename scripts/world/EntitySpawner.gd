@@ -7,6 +7,7 @@ const CivilianScene := preload("res://scenes/entities/humans/civilian.tscn")
 const AnimalScene := preload("res://scenes/entities/humans/animal.tscn")
 const MinionScene := preload("res://scenes/entities/minions/minion.tscn")
 const CorruptionNodeScene := preload("res://scenes/entities/buildings/corruption_node.tscn")
+const AlarmTowerScene := preload("res://scenes/entities/buildings/alarm_tower.tscn")
 
 # Reference to World (for map access)
 var _world: Node2D
@@ -47,9 +48,18 @@ func spawn_initial_corruption_node(initial_tile: Vector2i) -> void:
 
 
 func spawn_human_world_entities() -> void:
-	## Spawn civilians and animals in Human World
+	## Spawn civilians, animals, and alarm towers in Human World
+	_spawn_alarm_towers()
 	_spawn_civilians()
 	_spawn_animals()
+
+
+func _spawn_alarm_towers() -> void:
+	for i in GameConstants.ALARM_TOWER_COUNT:
+		var tower := AlarmTowerScene.instantiate()
+		var spawn_pos := _get_random_floor_tile()
+		_world.human_entities.add_child(tower)
+		tower.setup(spawn_pos)
 
 
 func _spawn_civilians() -> void:

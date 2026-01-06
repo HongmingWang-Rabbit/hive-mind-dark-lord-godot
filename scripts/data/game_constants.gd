@@ -113,6 +113,15 @@ const GROUP_BUILDINGS := "buildings"
 const GROUP_PORTALS := "portals"
 const GROUP_CORRUPTION_NODES := "corruption_nodes"
 const GROUP_SPAWNING_PITS := "spawning_pits"
+const GROUP_ALARM_TOWERS := "alarm_towers"  # Human defense structures
+
+#endregion
+
+#region Alarm Towers (Human Defense)
+
+const ALARM_TOWER_COUNT := 3  # Number of alarm towers to spawn on map
+const ALARM_THREAT_INCREASE := 1  # Threat levels to increase when alarm triggered
+const ALARM_ENEMY_ATTRACT_RADIUS := 128.0  # Pixels - enemies within this range move toward alarm
 
 #endregion
 

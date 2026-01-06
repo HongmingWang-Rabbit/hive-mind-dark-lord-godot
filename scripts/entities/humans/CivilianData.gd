@@ -16,3 +16,7 @@ const WANDER_INTERVAL_MAX := 3.0
 const FLEE_SPEED := 50.0  # Faster than wander when fleeing
 const FLEE_DETECTION_RADIUS := 48.0  # 3 tiles - how far to detect threats
 const FLEE_SAFE_DISTANCE := 64.0  # 4 tiles - stop fleeing when this far
+
+# Alarm tower seeking
+const ALARM_TOWER_SEARCH_RADIUS := 200.0  # Pixels - max distance to find alarm tower
+const ALARM_TOWER_ARRIVAL_DISTANCE := 16.0  # Pixels - close enough to trigger alarm

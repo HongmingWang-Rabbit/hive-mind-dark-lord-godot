@@ -1,0 +1,27 @@
+[gd_scene load_steps=4 format=4 uid="uid://alarm_tower_scene"]
+
+[ext_resource type="Script" path="res://scripts/entities/buildings/AlarmTowerController.gd" id="1_script"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_collision"]
+radius = 8.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_trigger"]
+radius = 20.0
+
+[node name="AlarmTower" type="StaticBody2D"]
+script = ExtResource("1_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_collision")
+
+[node name="TriggerArea" type="Area2D" parent="."]
+collision_layer = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="TriggerArea"]
+shape = SubResource("CircleShape2D_trigger")
+
+[node name="CooldownTimer" type="Timer" parent="."]
+one_shot = true

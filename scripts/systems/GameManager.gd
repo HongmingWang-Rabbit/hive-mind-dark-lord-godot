@@ -8,6 +8,7 @@ var threat_level: Enums.ThreatLevel = Enums.ThreatLevel.NONE
 
 func _ready() -> void:
 	EventBus.tile_corrupted.connect(_on_tile_corrupted)
+	EventBus.alarm_triggered.connect(_on_alarm_triggered)
 
 
 func _process(delta: float) -> void:
@@ -72,3 +73,35 @@ func _update_threat_level() -> void:
 
 func _on_tile_corrupted(_tile_pos: Vector2i) -> void:
 	Essence.add_income(GameConstants.ESSENCE_PER_TILE)
+
+
+func _on_alarm_triggered(alarm_position: Vector2) -> void:
+	## Alarm tower was triggered - increase threat and attract enemies
+	_increase_threat_level(GameConstants.ALARM_THREAT_INCREASE)
+	_attract_enemies_to_position(alarm_position)
+
+
+func _increase_threat_level(levels: int) -> void:
+	## Increase threat level by specified amount
+	var max_threat := Enums.ThreatLevel.HEAVY
+	var new_level_int := mini(threat_level + levels, max_threat)
+	var new_level := new_level_int as Enums.ThreatLevel
+
+	if new_level != threat_level:
+		threat_level = new_level
+		EventBus.threat_level_changed.emit(threat_level)
+
+
+func _attract_enemies_to_position(target_pos: Vector2) -> void:
+	## Make nearby enemies move toward the alarm position
+	var enemies := get_tree().get_nodes_in_group(GameConstants.GROUP_ENEMIES)
+
+	for enemy in enemies:
+		if not is_instance_valid(enemy):
+			continue
+
+		var distance := enemy.global_position.distance_to(target_pos)
+		if distance <= GameConstants.ALARM_ENEMY_ATTRACT_RADIUS:
+			# Tell enemy to investigate the alarm
+			if enemy.has_method("investigate_position"):
+				enemy.investigate_position(target_pos)

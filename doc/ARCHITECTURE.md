@@ -199,6 +199,9 @@ signal interaction_cancelled()
 # UI
 signal evolve_modal_requested()
 
+# Alarm System
+signal alarm_triggered(position: Vector2)  # Civilian triggered alarm tower
+
 # Resources
 signal essence_harvested(amount: int, source: Enums.HumanType)
 signal evolution_points_gained(amount: int, source: String)
@@ -237,6 +240,12 @@ GROUP_BUILDINGS         # "buildings" - all player buildings
 GROUP_PORTALS           # "portals"
 GROUP_CORRUPTION_NODES  # "corruption_nodes"
 GROUP_SPAWNING_PITS     # "spawning_pits"
+GROUP_ALARM_TOWERS      # "alarm_towers" - human defense structures
+
+#region Alarm Towers (Human Defense)
+ALARM_TOWER_COUNT           # 3 - towers spawned per map
+ALARM_THREAT_INCREASE       # 1 - threat levels gained when triggered
+ALARM_ENEMY_ATTRACT_RADIUS  # 128.0px - enemies within this respond
 
 #region Combat - Dark Lord
 DARK_LORD_HP            # 100 - Dark Lord max health
@@ -1167,12 +1176,37 @@ scenes/entities/enemies/
 ```
 
 ### Enemy Types
-| Type | HP | Damage | Speed | Spawns At |
-|------|-----|--------|-------|-----------|
-| POLICE | 20 | 5 | 40 | POLICE threat |
-| MILITARY | 40 | 10 | 35 | MILITARY threat |
-| HEAVY | 80 | 20 | 25 | HEAVY threat |
-| SPECIAL_FORCES | 50 | 15 | 45 | HEAVY threat (Dark World invasion) |
+| Type | HP | Damage | Speed | Collision | Sprite | Spawns At |
+|------|-----|--------|-------|-----------|--------|-----------|
+| POLICE | 20 | 5 | 40 | 5.0 | Soldier | POLICE threat |
+| MILITARY | 40 | 10 | 35 | 5.0 | Soldier | MILITARY threat |
+| HEAVY | 80 | 20 | 25 | 10.0 | Tank | HEAVY threat |
+| SPECIAL_FORCES | 50 | 15 | 45 | 5.0 | Soldier | HEAVY threat (Dark World invasion) |
+
+### Per-Type Configuration (EnemyData.gd)
+Enemy types have per-type sprite, collision, and scale settings:
+```gdscript
+# Per-type sprite paths
+const SPRITE_PATHS := {
+    Enums.EnemyType.POLICE: "res://assets/sprites/military/military_soldier_tactical.png",
+    Enums.EnemyType.HEAVY: "res://assets/sprites/buildings/military_tank_heavy_armored.png",
+    # ...
+}
+
+# Per-type collision radii
+const COLLISION_RADII := {
+    Enums.EnemyType.HEAVY: 10.0,  # Tank is bigger
+    # ...
+}
+
+# Per-type sprite size ratios
+const SPRITE_SIZE_RATIOS := {
+    Enums.EnemyType.HEAVY: 1.5,  # Tank displays larger
+    # ...
+}
+```
+
+Sprites are loaded dynamically in `setup(type)` based on the enemy type.
 
 ### Behavior States
 | State | Description |
@@ -1180,17 +1214,104 @@ scenes/entities/enemies/
 | PATROL | Wander near spawn point |
 | CHASE | Pursue detected threats |
 | ATTACK | Attack threats in range |
+| INVESTIGATE | Move to alarm location (triggered by alarm towers) |
 
 ### Combat Targeting
 - Detects and attacks entities in GROUP_THREATS (Dark Lord, minions)
 - Also attacks player buildings in GROUP_BUILDINGS (portals, corruption nodes, spawning pits)
 - Buildings have HP and can be destroyed
 
+### Alarm Response
+When an alarm tower is triggered, nearby enemies receive `investigate_position(target_pos)`:
+- Only interrupts PATROL or INVESTIGATE states (not combat)
+- Moves at full speed to alarm location
+- If threat detected while investigating → switches to CHASE
+- Returns to PATROL after reaching investigation point
+
 ### Spawning
 - Triggered by threat level changes (corruption %)
 - Spawns at map edges in Human World
 - Random spawning (independent of threat) with configurable weights
 - Max count limits per type
+
+---
+
+## Alarm Tower System
+
+Human defense structures that civilians flee toward when threatened.
+
+### File Organization
+```
+scripts/entities/buildings/
+├── AlarmTowerData.gd       # Alarm tower constants (preload pattern)
+└── AlarmTowerController.gd # Alarm tower behavior
+
+scenes/entities/buildings/
+└── alarm_tower.tscn        # Scene file
+```
+
+### Mechanic Flow
+1. Civilian detects threat (Dark Lord, minions)
+2. Civilian searches for nearest alarm tower within `ALARM_TOWER_SEARCH_RADIUS` (200px)
+3. If found → civilian enters `FLEE_TO_ALARM` state, runs toward tower
+4. If not found → civilian enters `FLEE` state, runs away from threat
+5. Fleeing civilian reaches tower's trigger area → alarm activates
+6. Alarm effect:
+   - Threat level increases by `ALARM_THREAT_INCREASE` (1 level)
+   - Nearby enemies within `ALARM_ENEMY_ATTRACT_RADIUS` (128px) investigate
+   - Tower goes on cooldown (`ALARM_COOLDOWN` = 30s)
+   - Civilian calms down
+
+### Data Script Constants (AlarmTowerData.gd)
+```gdscript
+SPRITE_PATH             # Path to alarm tower sprite
+COLLISION_RADIUS        # 8.0 - physical collision size
+SPRITE_SIZE_RATIO       # 1.5 - visual size relative to collision
+TRIGGER_RADIUS          # 20.0 - civilians can trigger within this range
+ALARM_COOLDOWN          # 30.0s - time before tower can be triggered again
+ALARM_FLASH_DURATION    # 0.5s - visual feedback animation duration
+
+# Visual colors
+ACTIVE_COLOR            # Normal state (white)
+ALARM_COLOR             # When triggered (red flash)
+COOLDOWN_COLOR          # During cooldown (gray)
+```
+
+### GameConstants
+```gdscript
+GROUP_ALARM_TOWERS          # "alarm_towers" - group name
+ALARM_TOWER_COUNT           # 3 - towers spawned per map
+ALARM_THREAT_INCREASE       # 1 - threat levels gained when triggered
+ALARM_ENEMY_ATTRACT_RADIUS  # 128.0px - enemies within this respond
+```
+
+### Civilian Flee Behavior (CivilianData.gd)
+```gdscript
+ALARM_TOWER_SEARCH_RADIUS   # 200.0px - max distance to find alarm tower
+ALARM_TOWER_ARRIVAL_DISTANCE # 16.0px - close enough to trigger
+```
+
+### Civilian States
+| State | Description |
+|-------|-------------|
+| WANDER | Normal wandering behavior |
+| FLEE | Running away from threat (no tower found) |
+| FLEE_TO_ALARM | Running toward nearest alarm tower |
+
+### Signal
+```gdscript
+EventBus.alarm_triggered(position: Vector2)  # Emitted when alarm activates
+```
+
+### Scene Structure (alarm_tower.tscn)
+```
+AlarmTower [StaticBody2D] (AlarmTowerController.gd)
+├── Sprite2D - Visual representation
+├── CollisionShape2D - Physics collision
+├── TriggerArea [Area2D] - Detects civilians
+│   └── CollisionShape2D - Trigger radius
+└── CooldownTimer - Prevents spam triggering
+```
 
 ---
 

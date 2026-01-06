@@ -1,7 +1,6 @@
-[gd_scene load_steps=6 format=4 uid="uid://enemy_scene"]
+[gd_scene load_steps=5 format=4 uid="uid://enemy_scene"]
 
 [ext_resource type="Script" path="res://scripts/entities/enemies/EnemyController.gd" id="1_script"]
-[ext_resource type="Texture2D" path="res://assets/sprites/military/military_soldier_tactical.png" id="2_sprite"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_collision"]
 radius = 5.0
@@ -16,7 +15,6 @@ radius = 14.0
 script = ExtResource("1_script")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-texture = ExtResource("2_sprite")
 texture_filter = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

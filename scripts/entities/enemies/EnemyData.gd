@@ -4,8 +4,33 @@ extends RefCounted
 ##
 ## Combat stats (HP, damage, speed) come from GameConstants
 
+# Default values (used if type not in dictionaries)
 const COLLISION_RADIUS := 5.0
 const SPRITE_SIZE_RATIO := 1.0
+
+# Per-type sprite paths
+const SPRITE_PATHS := {
+	Enums.EnemyType.POLICE: "res://assets/sprites/military/military_soldier_tactical.png",
+	Enums.EnemyType.MILITARY: "res://assets/sprites/military/military_soldier_tactical.png",
+	Enums.EnemyType.HEAVY: "res://assets/sprites/buildings/military_tank_heavy_armored.png",
+	Enums.EnemyType.SPECIAL_FORCES: "res://assets/sprites/military/military_soldier_tactical.png",
+}
+
+# Per-type collision radii (heavy units are larger)
+const COLLISION_RADII := {
+	Enums.EnemyType.POLICE: 5.0,
+	Enums.EnemyType.MILITARY: 5.0,
+	Enums.EnemyType.HEAVY: 10.0,  # Tank is bigger
+	Enums.EnemyType.SPECIAL_FORCES: 5.0,
+}
+
+# Per-type sprite size ratios
+const SPRITE_SIZE_RATIOS := {
+	Enums.EnemyType.POLICE: 1.0,
+	Enums.EnemyType.MILITARY: 1.0,
+	Enums.EnemyType.HEAVY: 1.5,  # Tank sprite displayed larger
+	Enums.EnemyType.SPECIAL_FORCES: 1.0,
+}
 
 # AI behavior
 const PATROL_RADIUS := 64.0  # How far to patrol from spawn point

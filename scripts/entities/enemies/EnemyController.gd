@@ -5,7 +5,7 @@ extends CharacterBody2D
 const Data := preload("res://scripts/entities/enemies/EnemyData.gd")
 const HealthComponent := preload("res://scripts/components/HealthComponent.gd")
 
-enum State { PATROL, CHASE, ATTACK }
+enum State { PATROL, CHASE, ATTACK, INVESTIGATE }
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
@@ -23,6 +23,7 @@ var _speed: float
 var _state := State.PATROL
 var _spawn_position: Vector2
 var _patrol_target: Vector2
+var _investigate_target: Vector2  # Position to investigate (alarm location)
 var _chase_target: Node2D = null
 var _attack_target: Node2D = null
 var _threats_detected: Array[Node2D] = []
@@ -36,8 +37,6 @@ func _ready() -> void:
 	add_to_group(GameConstants.GROUP_ENEMIES)
 	add_to_group(GameConstants.GROUP_KILLABLE)
 	_spawn_position = global_position
-	_setup_collision_shape()
-	_setup_sprite_scale()
 	_setup_detection()
 	_setup_combat()
 	_pick_patrol_target()
@@ -70,20 +69,31 @@ func setup(type: Enums.EnemyType) -> void:
 			_damage = GameConstants.SPECIAL_FORCES_DAMAGE
 			_speed = GameConstants.SPECIAL_FORCES_SPEED
 			add_to_group(GameConstants.GROUP_SPECIAL_FORCES)
+	_setup_sprite(type)
+	_setup_collision_shape(type)
+	_setup_sprite_scale(type)
 	_setup_health_component(max_hp)
 
 
-func _setup_collision_shape() -> void:
+func _setup_sprite(type: Enums.EnemyType) -> void:
+	var sprite_path: String = Data.SPRITE_PATHS.get(type, Data.SPRITE_PATHS[Enums.EnemyType.MILITARY])
+	sprite.texture = load(sprite_path)
+
+
+func _setup_collision_shape(type: Enums.EnemyType) -> void:
+	var radius: float = Data.COLLISION_RADII.get(type, Data.COLLISION_RADIUS)
 	var shape := CircleShape2D.new()
-	shape.radius = Data.COLLISION_RADIUS
+	shape.radius = radius
 	collision_shape.shape = shape
 
 
-func _setup_sprite_scale() -> void:
+func _setup_sprite_scale(type: Enums.EnemyType) -> void:
 	if sprite.texture == null:
 		return
+	var radius: float = Data.COLLISION_RADII.get(type, Data.COLLISION_RADIUS)
+	var size_ratio: float = Data.SPRITE_SIZE_RATIOS.get(type, Data.SPRITE_SIZE_RATIO)
 	var texture_size := sprite.texture.get_size()
-	var desired_diameter := Data.COLLISION_RADIUS * 2.0 * Data.SPRITE_SIZE_RATIO
+	var desired_diameter := radius * 2.0 * size_ratio
 	var max_dimension := maxf(texture_size.x, texture_size.y)
 	var scale_factor := desired_diameter / max_dimension
 	sprite.scale = Vector2(scale_factor, scale_factor)
@@ -135,6 +145,8 @@ func _physics_process(_delta: float) -> void:
 			_process_chase()
 		State.ATTACK:
 			_process_attack()
+		State.INVESTIGATE:
+			_process_investigate()
 
 
 func _process_patrol() -> void:
@@ -188,6 +200,39 @@ func _process_attack() -> void:
 	# Stay in position and attack
 	velocity = Vector2.ZERO
 	_try_attack()
+
+
+func _process_investigate() -> void:
+	# Check if we spotted a threat while investigating
+	if _threats_detected.size() > 0:
+		_update_chase_target()
+		if _chase_target != null:
+			_state = State.CHASE
+			return
+
+	var distance := global_position.distance_to(_investigate_target)
+
+	if distance > Data.PATROL_ARRIVAL_DISTANCE:
+		var direction := (_investigate_target - global_position).normalized()
+		velocity = direction * _speed  # Move at full speed to investigate
+
+		if velocity.x != 0:
+			sprite.flip_h = velocity.x < 0
+
+		move_and_slide()
+	else:
+		# Reached investigation point, return to patrol
+		velocity = Vector2.ZERO
+		_state = State.PATROL
+		_pick_patrol_target()
+
+
+func investigate_position(target_pos: Vector2) -> void:
+	## Called when alarm is triggered - move to investigate
+	# Only interrupt if not already engaged in combat
+	if _state == State.PATROL or _state == State.INVESTIGATE:
+		_investigate_target = target_pos
+		_state = State.INVESTIGATE
 
 
 func _pick_patrol_target() -> void:

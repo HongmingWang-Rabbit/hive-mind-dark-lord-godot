@@ -1,10 +1,10 @@
 extends CharacterBody2D
 ## Civilian entity - wanders in Human World, provides essence when killed
-## Flees from threats (Dark Lord, minions) when detected
+## Flees toward alarm towers when detecting threats (Dark Lord, minions)
 
 const Data := preload("res://scripts/entities/humans/CivilianData.gd")
 
-enum State { WANDER, FLEE }
+enum State { WANDER, FLEE, FLEE_TO_ALARM }
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
@@ -17,6 +17,7 @@ var _state := State.WANDER
 var _target_position: Vector2
 var _is_moving := false
 var _flee_target: Node2D = null  # The threat we're fleeing from
+var _alarm_target: Node2D = null  # The alarm tower we're fleeing toward
 var _threats_nearby: Array[Node2D] = []
 
 
@@ -66,6 +67,8 @@ func _physics_process(_delta: float) -> void:
 				_move_toward_target()
 		State.FLEE:
 			_process_flee()
+		State.FLEE_TO_ALARM:
+			_process_flee_to_alarm()
 
 
 func _move_toward_target() -> void:
@@ -115,6 +118,44 @@ func _process_flee() -> void:
 		move_and_slide()
 
 
+func _process_flee_to_alarm() -> void:
+	# Validate alarm tower target
+	if _alarm_target == null or not is_instance_valid(_alarm_target):
+		# Alarm tower gone, fall back to regular flee
+		_alarm_target = null
+		_find_alarm_tower()
+		if _alarm_target == null:
+			_state = State.FLEE
+			return
+
+	# Check if alarm tower is on cooldown - find another or flee normally
+	if _alarm_target.has_method("is_on_cooldown") and _alarm_target.is_on_cooldown():
+		_alarm_target = null
+		_find_alarm_tower()
+		if _alarm_target == null:
+			_state = State.FLEE
+			return
+
+	# Move toward alarm tower
+	var distance := global_position.distance_to(_alarm_target.global_position)
+
+	if distance <= Data.ALARM_TOWER_ARRIVAL_DISTANCE:
+		# Reached the alarm tower - the tower's trigger area will handle activation
+		velocity = Vector2.ZERO
+	else:
+		var direction := (_alarm_target.global_position - global_position).normalized()
+		velocity = direction * Data.FLEE_SPEED
+
+		if velocity.x != 0:
+			sprite.flip_h = velocity.x < 0
+
+		move_and_slide()
+
+	# Check if threats are gone
+	if _threats_nearby.size() == 0:
+		_return_to_wander()
+
+
 func _update_flee_target() -> void:
 	## Find the closest threat to flee from
 	_flee_target = null
@@ -133,15 +174,53 @@ func _update_flee_target() -> void:
 func _return_to_wander() -> void:
 	_state = State.WANDER
 	_flee_target = null
+	_alarm_target = null
 	velocity = Vector2.ZERO
 	_is_moving = false
 	_start_wander_timer()
 
 
 func _start_flee(threat: Node2D) -> void:
-	_state = State.FLEE
 	_flee_target = threat
 	wander_timer.stop()  # Cancel any pending wander
+
+	# Try to find an alarm tower to flee toward
+	_find_alarm_tower()
+	if _alarm_target != null:
+		_state = State.FLEE_TO_ALARM
+	else:
+		_state = State.FLEE
+
+
+func _find_alarm_tower() -> void:
+	## Find the nearest alarm tower that isn't on cooldown
+	_alarm_target = null
+	var closest_distance := Data.ALARM_TOWER_SEARCH_RADIUS
+	var alarm_towers := get_tree().get_nodes_in_group(GameConstants.GROUP_ALARM_TOWERS)
+
+	for tower in alarm_towers:
+		if not is_instance_valid(tower):
+			continue
+		# Skip towers on cooldown
+		if tower.has_method("is_on_cooldown") and tower.is_on_cooldown():
+			continue
+
+		var dist := global_position.distance_to(tower.global_position)
+		if dist < closest_distance:
+			closest_distance = dist
+			_alarm_target = tower
+
+
+func is_fleeing() -> bool:
+	## Returns true if civilian is currently fleeing (used by alarm tower)
+	return _state == State.FLEE or _state == State.FLEE_TO_ALARM
+
+
+func on_alarm_triggered() -> void:
+	## Called by alarm tower when this civilian triggers the alarm
+	# Civilian can continue fleeing or calm down - for now, return to wander
+	# since they did their job
+	_return_to_wander()
 
 
 func _pick_new_wander_target() -> void:

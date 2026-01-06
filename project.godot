@@ -20,12 +20,12 @@ config/icon="res://icon.svg"
 Enums="*res://scripts/data/enums.gd"
 GameConstants="*res://scripts/data/game_constants.gd"
 EventBus="*res://scripts/systems/EventBus.gd"
-SpatialGrid="*res://scripts/systems/SpatialGrid.gd"
 Essence="*res://scripts/systems/Essence.gd"
 HivePool="*res://scripts/systems/HivePool.gd"
 GameManager="*res://scripts/systems/GameManager.gd"
 TileData="*res://scripts/data/tile_data.gd"
 WorldManager="*res://scripts/systems/WorldManager.gd"
+SpatialGrid="*res://scripts/systems/SpatialGrid.gd"
 
 [display]
 

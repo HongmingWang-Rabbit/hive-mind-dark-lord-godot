@@ -42,3 +42,6 @@ signal interaction_cancelled()
 
 # UI events
 signal evolve_modal_requested()
+
+# Alarm events
+signal alarm_triggered(position: Vector2)  # Civilian triggered alarm tower
