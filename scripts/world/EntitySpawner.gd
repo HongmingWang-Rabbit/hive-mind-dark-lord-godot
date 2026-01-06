@@ -1,15 +1,16 @@
 extends RefCounted
-## Handles spawning of entities: Dark Lord, civilians, animals, police stations, minions
+## Handles spawning of entities: Dark Lord, animals, buildings, minions
 ## Uses preloaded scenes for instantiation
-## Note: Policemen are spawned by PoliceStationController, not directly by this spawner
+## Note: Civilians are spawned by CivilianHouseController
+## Note: Policemen are spawned by PoliceStationController
 
 const DarkLordScene := preload("res://scenes/entities/dark_lord/dark_lord.tscn")
-const CivilianScene := preload("res://scenes/entities/humans/civilian.tscn")
 const AnimalScene := preload("res://scenes/entities/humans/animal.tscn")
 const MinionScene := preload("res://scenes/entities/minions/minion.tscn")
 const CorruptionNodeScene := preload("res://scenes/entities/buildings/corruption_node.tscn")
 const AlarmTowerScene := preload("res://scenes/entities/buildings/alarm_tower.tscn")
 const PoliceStationScene := preload("res://scenes/entities/buildings/police_station.tscn")
+const CivilianHouseScene := preload("res://scenes/entities/buildings/civilian_house.tscn")
 
 # Reference to World (for map access)
 var _world: Node2D
@@ -50,10 +51,11 @@ func spawn_initial_corruption_node(initial_tile: Vector2i) -> void:
 
 
 func spawn_human_world_entities() -> void:
-	## Spawn civilians, animals, police stations, and alarm towers in Human World
+	## Spawn buildings and animals in Human World
+	## Note: Civilians spawned by houses, policemen spawned by stations
 	_spawn_alarm_towers()
 	_spawn_police_stations()
-	_spawn_civilians()
+	_spawn_civilian_houses()
 	_spawn_animals()
 
 
@@ -65,11 +67,12 @@ func _spawn_alarm_towers() -> void:
 		tower.setup(spawn_pos)
 
 
-func _spawn_civilians() -> void:
-	for i in GameConstants.CIVILIAN_COUNT:
-		var civilian := CivilianScene.instantiate()
+func _spawn_civilian_houses() -> void:
+	for i in GameConstants.CIVILIAN_HOUSE_COUNT:
+		var house := CivilianHouseScene.instantiate()
 		var spawn_pos := _get_random_floor_tile()
-		_place_entity_at_tile(civilian, spawn_pos, Enums.WorldType.HUMAN)
+		_world.human_entities.add_child(house)
+		house.setup(spawn_pos)
 
 
 func _spawn_animals() -> void:

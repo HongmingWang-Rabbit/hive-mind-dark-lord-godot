@@ -88,7 +88,7 @@ func _setup_combat() -> void:
 func _setup_health_component() -> void:
 	_health = HealthComponent.new()
 	add_child(_health)
-	_health.setup(GameConstants.POLICEMAN_HP)
+	_health.setup(GameConstants.HUMAN_ENTITY_STATS[Enums.HumanType.POLICEMAN].hp)
 	_health.died.connect(_die)
 
 
@@ -318,7 +318,7 @@ func _try_attack() -> void:
 		return
 
 	if _attack_target.has_method("take_damage"):
-		_attack_target.take_damage(GameConstants.POLICEMAN_DAMAGE)
+		_attack_target.take_damage(GameConstants.HUMAN_ENTITY_STATS[Enums.HumanType.POLICEMAN].damage)
 	attack_timer.start()
 
 
@@ -396,7 +396,7 @@ func take_damage(amount: int) -> void:
 
 func _die() -> void:
 	EventBus.entity_killed.emit(global_position, Enums.HumanType.POLICEMAN)
-	Essence.modify(GameConstants.ESSENCE_PER_POLICEMAN)
+	Essence.modify(GameConstants.HUMAN_ENTITY_STATS[Enums.HumanType.POLICEMAN].essence_reward)
 	queue_free()
 
 #endregion

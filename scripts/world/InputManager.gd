@@ -166,17 +166,10 @@ func _handle_keyboard(event: InputEventKey) -> bool:
 		WorldManager.switch_world(target)
 		return true
 
-	# Minion spawning hotkeys
-	match event.keycode:
-		GameConstants.KEY_SPAWN_CRAWLER:
-			_entity_spawner.spawn_minion(Enums.MinionType.CRAWLER)
-			return true
-		GameConstants.KEY_SPAWN_BRUTE:
-			_entity_spawner.spawn_minion(Enums.MinionType.BRUTE)
-			return true
-		GameConstants.KEY_SPAWN_STALKER:
-			_entity_spawner.spawn_minion(Enums.MinionType.STALKER)
-			return true
+	# Minion spawning hotkeys (data-driven)
+	if event.keycode in GameConstants.SPAWN_HOTKEYS:
+		_entity_spawner.spawn_minion(GameConstants.SPAWN_HOTKEYS[event.keycode])
+		return true
 
 	return false
 
@@ -230,14 +223,8 @@ func _on_order_mode_entered(assignment: Enums.MinionAssignment) -> void:
 	_interaction_mode = Enums.InteractionMode.ORDER
 	_pending_order_assignment = assignment
 
-	# Set order cursor color based on assignment type
-	match assignment:
-		Enums.MinionAssignment.ATTACKING:
-			order_cursor.modulate = GameConstants.ORDER_CURSOR_COLOR
-		Enums.MinionAssignment.DEFENDING:
-			order_cursor.modulate = GameConstants.ORDER_CURSOR_DEFEND_COLOR
-		Enums.MinionAssignment.IDLE:
-			order_cursor.modulate = GameConstants.ORDER_CURSOR_SCOUT_COLOR
+	# Set order cursor color based on assignment type (data-driven)
+	order_cursor.modulate = GameConstants.ORDER_CURSOR_COLORS[assignment]
 
 	order_cursor.visible = true
 	EventBus.interaction_mode_changed.emit(Enums.InteractionMode.ORDER, assignment)
@@ -264,16 +251,9 @@ func _handle_interaction_click(world_pos: Vector2) -> void:
 
 
 func _execute_order(target_pos: Vector2) -> void:
-	## Issue order to minions at target position
-	match _pending_order_assignment:
-		Enums.MinionAssignment.ATTACKING:
-			HivePool.send_attack(target_pos, 1.0, Enums.Stance.AGGRESSIVE)
-		Enums.MinionAssignment.DEFENDING:
-			# Defend mode - move to position and hold (attack only when attacked)
-			HivePool.send_attack(target_pos, 1.0, Enums.Stance.HOLD)
-		Enums.MinionAssignment.IDLE:
-			# Scout - move to location then return to follow
-			HivePool.send_attack(target_pos, 1.0, Enums.Stance.RETREAT)
+	## Issue order to minions at target position (data-driven)
+	var stance: Enums.Stance = GameConstants.ORDER_STANCES[_pending_order_assignment]
+	HivePool.send_attack(target_pos, 1.0, stance)
 
 
 func _on_retreat_ordered() -> void:

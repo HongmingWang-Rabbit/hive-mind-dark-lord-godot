@@ -24,7 +24,7 @@ var _threats_nearby: Array[Node2D] = []
 func _ready() -> void:
 	add_to_group(GameConstants.GROUP_CIVILIANS)
 	add_to_group(GameConstants.GROUP_KILLABLE)
-	_hp = GameConstants.CIVILIAN_HP
+	_hp = GameConstants.HUMAN_ENTITY_STATS[Enums.HumanType.CIVILIAN].hp
 	_setup_collision_shape()
 	_setup_sprite_scale()
 	_setup_detection_area()
@@ -273,7 +273,7 @@ func take_damage(amount: int) -> void:
 
 func _die() -> void:
 	EventBus.entity_killed.emit(global_position, Enums.HumanType.CIVILIAN)
-	Essence.modify(GameConstants.ESSENCE_PER_CIVILIAN)
+	Essence.modify(GameConstants.HUMAN_ENTITY_STATS[Enums.HumanType.CIVILIAN].essence_reward)
 	queue_free()
 
 #endregion

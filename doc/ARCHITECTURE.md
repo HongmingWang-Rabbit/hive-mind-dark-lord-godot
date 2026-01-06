@@ -221,9 +221,14 @@ ESSENCE_PER_ANIMAL      # +5 - reward for killing animals
 ESSENCE_PER_POLICEMAN   # +15 - reward for killing policemen
 
 #region Human World Entities
-CIVILIAN_COUNT          # Number of civilians to spawn (10)
 ANIMAL_COUNT            # Number of animals to spawn (8)
 ENTITY_SPAWN_ATTEMPTS   # Max attempts to find valid spawn position (50)
+# Note: Civilians spawned by civilian houses, policemen spawned by police stations
+
+#region Civilian Houses (Human World)
+CIVILIAN_HOUSE_COUNT            # Number of civilian houses to spawn (4)
+MAX_CIVILIANS_PER_HOUSE         # Max civilians each house can maintain (3)
+CIVILIAN_HOUSE_SPAWN_INTERVAL   # Seconds between civilian spawn attempts (8.0)
 
 #region Police Stations (Human Defense)
 POLICE_STATION_COUNT            # Number of police stations to spawn (2)
@@ -255,6 +260,7 @@ GROUP_SPAWNING_PITS     # "spawning_pits"
 GROUP_ALARM_TOWERS      # "alarm_towers" - human defense structures
 GROUP_POLICE_STATIONS   # "police_stations" - human defense structures
 GROUP_MILITARY_PORTALS  # "military_portals" - human military portals
+GROUP_CIVILIAN_HOUSES   # "civilian_houses" - human dwellings
 
 #region Alarm Towers (Human Defense)
 ALARM_TOWER_COUNT           # 3 - towers spawned per map
@@ -267,17 +273,14 @@ DARK_LORD_DAMAGE        # 10 - damage per attack
 DARK_LORD_ATTACK_RANGE  # 16.0 pixels (1 tile)
 DARK_LORD_ATTACK_COOLDOWN # 0.5s between attacks
 
-#region Combat - Entities
-CIVILIAN_HP             # 10 - keep synced with CivilianData.HP
-ANIMAL_HP               # 10 - keep synced with AnimalData.HP
-POLICEMAN_HP            # 25 - policemen are tougher
-POLICEMAN_DAMAGE        # 5 - damage dealt to threats
+#region Human World Entities
+HUMAN_ENTITY_STATS[HumanType] = {hp, damage, essence_reward, group}  # Unified human entity stats
 
 #region Units
 MINION_STATS[MinionType] = {cost, upkeep, hp, damage, speed}
 
 #region Combat - Enemies
-ENEMY_STATS[EnemyType] = {hp, damage, speed, group}  # Unified enemy stats dictionary
+ENEMY_STATS[EnemyType] = {hp, damage, speed, group, spawn_interval, max_count, min_threat}  # Complete enemy config
 
 #region Buildings
 BUILDING_STATS[BuildingType] = {cost, hp, ...}  # Buildings have HP, can be destroyed by enemies
@@ -329,6 +332,7 @@ CAMERA_ZOOM_STEP        # float - zoom change per scroll tick (0.1)
 #region Input Keys
 KEY_PLACE_PORTAL        # Key for placing portals (KEY_P)
 KEY_SWITCH_WORLD        # Key for debug world switching (KEY_TAB)
+SPAWN_HOTKEYS[Key] = MinionType  # Data-driven hotkey mapping (KEY_1 -> CRAWLER, etc.)
 
 #region Corruption Visual
 CORRUPTION_COLOR        # Color for corruption overlay
@@ -336,9 +340,8 @@ CORRUPTION_COLOR        # Color for corruption overlay
 #region Cursor Preview
 CURSOR_PREVIEW_COLOR    # Color(1.0, 1.0, 1.0, 0.7) - semi-transparent preview
 CURSOR_PREVIEW_Z_INDEX  # 50 - above world, below UI
-ORDER_CURSOR_COLOR      # Color(1.0, 0.3, 0.3, 0.8) - red for attack orders
-ORDER_CURSOR_DEFEND_COLOR  # Color(0.3, 0.5, 1.0, 0.8) - blue for defend
-ORDER_CURSOR_SCOUT_COLOR   # Color(0.3, 1.0, 0.5, 0.8) - green for scout
+ORDER_CURSOR_COLORS[MinionAssignment] = Color  # Data-driven cursor colors
+ORDER_STANCES[MinionAssignment] = Stance  # Data-driven order stances
 ORDER_CURSOR_SIZE       # 12.0 - diameter of order cursor circle
 ORDER_CURSOR_RING_WIDTH # 2.0 - width of the ring outline
 ORDER_CURSOR_CENTER_ALPHA  # 0.3 - alpha of center fill

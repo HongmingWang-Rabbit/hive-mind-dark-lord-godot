@@ -11,18 +11,20 @@ const ESSENCE_PER_TILE := 1
 const ESSENCE_PER_KILL := 10
 const ESSENCE_PER_POSSESS := 25
 
-# Entity rewards
-const ESSENCE_PER_CIVILIAN := 10
-const ESSENCE_PER_ANIMAL := 5
-const ESSENCE_PER_POLICEMAN := 15
-
 #endregion
 
 #region Human World Entities
 
-const CIVILIAN_COUNT := 10
 const ANIMAL_COUNT := 8
 const ENTITY_SPAWN_ATTEMPTS := 50  # Max attempts to find valid spawn position
+# Note: Civilians spawned by civilian houses (CIVILIAN_HOUSE_COUNT * MAX_CIVILIANS_PER_HOUSE)
+
+# Human entity stats: {hp, damage, essence_reward, group}
+const HUMAN_ENTITY_STATS := {
+	Enums.HumanType.CIVILIAN: {hp = 10, damage = 0, essence_reward = 10, group = "civilians"},
+	Enums.HumanType.ANIMAL: {hp = 10, damage = 0, essence_reward = 5, group = "animals"},
+	Enums.HumanType.POLICEMAN: {hp = 25, damage = 5, essence_reward = 15, group = "policemen"},
+}
 
 #endregion
 
@@ -47,40 +49,20 @@ const DARK_LORD_ATTACK_COOLDOWN := 0.5  # Seconds between attacks
 
 #endregion
 
-#region Combat - Entities
-
-const CIVILIAN_HP := 10
-const ANIMAL_HP := 10
-const POLICEMAN_HP := 25
-const POLICEMAN_DAMAGE := 5
-
-#endregion
-
 #region Combat - Enemies
 
-# Enemy stats: {hp, damage, speed, group}
+# Enemy stats: {hp, damage, speed, group, spawn_interval, max_count, min_threat}
 const ENEMY_STATS := {
-	Enums.EnemyType.SWAT: {hp = 20, damage = 5, speed = 40.0, group = "swat"},
-	Enums.EnemyType.MILITARY: {hp = 40, damage = 10, speed = 35.0, group = "military"},
-	Enums.EnemyType.HEAVY: {hp = 80, damage = 20, speed = 25.0, group = "heavy"},
-	Enums.EnemyType.SPECIAL_FORCES: {hp = 50, damage = 15, speed = 45.0, group = "special_forces"},
-	Enums.EnemyType.PSYCHIC: {hp = 15, damage = 8, speed = 50.0, group = "psychic"},
+	Enums.EnemyType.SWAT: {hp = 20, damage = 5, speed = 40.0, group = "swat", spawn_interval = 10.0, max_count = 5, min_threat = Enums.ThreatLevel.SWAT},
+	Enums.EnemyType.MILITARY: {hp = 40, damage = 10, speed = 35.0, group = "military", spawn_interval = 8.0, max_count = 3, min_threat = Enums.ThreatLevel.MILITARY},
+	Enums.EnemyType.HEAVY: {hp = 80, damage = 20, speed = 25.0, group = "heavy", spawn_interval = 15.0, max_count = 2, min_threat = Enums.ThreatLevel.HEAVY},
+	Enums.EnemyType.SPECIAL_FORCES: {hp = 50, damage = 15, speed = 45.0, group = "special_forces", spawn_interval = 20.0, max_count = 2, min_threat = Enums.ThreatLevel.HEAVY},
+	Enums.EnemyType.PSYCHIC: {hp = 15, damage = 8, speed = 50.0, group = "psychic", spawn_interval = 12.0, max_count = 2, min_threat = Enums.ThreatLevel.MILITARY},
 }
 
 #endregion
 
 #region Enemy Spawning
-
-const SWAT_SPAWN_INTERVAL := 10.0  # Seconds between spawns
-const MILITARY_SPAWN_INTERVAL := 8.0
-const HEAVY_SPAWN_INTERVAL := 15.0
-const PSYCHIC_SPAWN_INTERVAL := 12.0
-
-const MAX_SWAT := 5
-const MAX_MILITARY := 3
-const MAX_HEAVY := 2
-const MAX_SPECIAL_FORCES := 2
-const MAX_PSYCHIC := 2
 
 const ENEMY_SPAWN_MARGIN := 2  # Tiles from map edge to spawn
 
@@ -116,6 +98,15 @@ const GROUP_SPAWNING_PITS := "spawning_pits"
 const GROUP_ALARM_TOWERS := "alarm_towers"      # Human defense structures
 const GROUP_POLICE_STATIONS := "police_stations"  # Human defense structures
 const GROUP_MILITARY_PORTALS := "military_portals"  # Human military portals
+const GROUP_CIVILIAN_HOUSES := "civilian_houses"  # Human dwellings
+
+#endregion
+
+#region Civilian Houses (Human World)
+
+const CIVILIAN_HOUSE_COUNT := 4  # Number of civilian houses to spawn on map
+const MAX_CIVILIANS_PER_HOUSE := 3  # Max civilians each house can maintain
+const CIVILIAN_HOUSE_SPAWN_INTERVAL := 8.0  # Seconds between civilian spawn attempts
 
 #endregion
 
@@ -296,10 +287,12 @@ const CAMERA_ZOOM_STEP := 0.1  # Zoom change per scroll tick
 const KEY_PLACE_PORTAL: Key = KEY_P
 const KEY_SWITCH_WORLD: Key = KEY_TAB  # Debug only
 
-# Minion spawning hotkeys
-const KEY_SPAWN_CRAWLER: Key = KEY_1
-const KEY_SPAWN_BRUTE: Key = KEY_2
-const KEY_SPAWN_STALKER: Key = KEY_3
+# Minion spawning hotkeys: {Key -> MinionType}
+const SPAWN_HOTKEYS := {
+	KEY_1: Enums.MinionType.CRAWLER,
+	KEY_2: Enums.MinionType.BRUTE,
+	KEY_3: Enums.MinionType.STALKER,
+}
 
 #endregion
 
@@ -332,10 +325,20 @@ const HEALTH_BAR_LOW_COLOR := Color(0.9, 0.2, 0.2, 1.0)  # Red
 const CURSOR_PREVIEW_COLOR := Color(1.0, 1.0, 1.0, 0.7)  # Semi-transparent white
 const CURSOR_PREVIEW_Z_INDEX := 50  # Above world, below UI
 
-# Order cursor (attack/defend targeting)
-const ORDER_CURSOR_COLOR := Color(1.0, 0.3, 0.3, 0.8)  # Red for attack orders
-const ORDER_CURSOR_DEFEND_COLOR := Color(0.3, 0.5, 1.0, 0.8)  # Blue for defend orders
-const ORDER_CURSOR_SCOUT_COLOR := Color(0.3, 1.0, 0.5, 0.8)  # Green for scout orders
+# Order cursor colors: {MinionAssignment -> Color}
+const ORDER_CURSOR_COLORS := {
+	Enums.MinionAssignment.ATTACKING: Color(1.0, 0.3, 0.3, 0.8),  # Red for attack orders
+	Enums.MinionAssignment.DEFENDING: Color(0.3, 0.5, 1.0, 0.8),  # Blue for defend orders
+	Enums.MinionAssignment.IDLE: Color(0.3, 1.0, 0.5, 0.8),  # Green for scout orders
+}
+
+# Order stances: {MinionAssignment -> Stance}
+const ORDER_STANCES := {
+	Enums.MinionAssignment.ATTACKING: Enums.Stance.AGGRESSIVE,
+	Enums.MinionAssignment.DEFENDING: Enums.Stance.HOLD,
+	Enums.MinionAssignment.IDLE: Enums.Stance.RETREAT,  # Scout: move then return
+}
+
 const ORDER_CURSOR_SIZE := 12.0  # Diameter of order cursor circle
 const ORDER_CURSOR_RING_WIDTH := 2.0  # Width of the ring outline
 const ORDER_CURSOR_CENTER_ALPHA := 0.3  # Alpha of the center fill

@@ -23,7 +23,7 @@ var _threats_nearby: Array[Node2D] = []
 func _ready() -> void:
 	add_to_group(GameConstants.GROUP_ANIMALS)
 	add_to_group(GameConstants.GROUP_KILLABLE)
-	_hp = GameConstants.ANIMAL_HP
+	_hp = GameConstants.HUMAN_ENTITY_STATS[Enums.HumanType.ANIMAL].hp
 	_setup_collision_shape()
 	_setup_sprite_scale()
 	_setup_detection_area()
@@ -194,7 +194,7 @@ func take_damage(amount: int) -> void:
 
 func _die() -> void:
 	EventBus.entity_killed.emit(global_position, Enums.HumanType.ANIMAL)
-	Essence.modify(GameConstants.ESSENCE_PER_ANIMAL)
+	Essence.modify(GameConstants.HUMAN_ENTITY_STATS[Enums.HumanType.ANIMAL].essence_reward)
 	queue_free()
 
 #endregion
