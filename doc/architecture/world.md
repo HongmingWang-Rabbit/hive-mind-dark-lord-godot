@@ -246,7 +246,7 @@ reset()            # Reset all timers
 ```
 
 ### Spawn Logic
-- Police spawn at POLICE threat and above
+- SWAT spawn at SWAT threat and above
 - Military spawn at MILITARY threat and above
 - Heavy spawn at HEAVY threat
 - Random enemies spawn independently if enabled
@@ -283,7 +283,7 @@ update_cursor_preview()        # Update cursor position (called by World._proces
 | Level    | Human World                   | Dark World                              |
 |----------|-------------------------------|-----------------------------------------|
 | NONE     | Peaceful                      | Safe                                    |
-| LOW      | Police investigate            | Safe                                    |
+| LOW      | SWAT investigate              | Safe                                    |
 | MEDIUM   | Military patrols              | Special forces scout near portals       |
 | HIGH     | Heavy military deployed       | Military opens own portals, invades     |
 | CRITICAL | Full war, all units attack    | Coordinated assault to kill Dark Lord   |

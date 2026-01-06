@@ -1,8 +1,9 @@
 extends RefCounted
 ## Handles threat-based enemy spawning
-## Spawns police, military, and heavy units based on current threat level
+## Spawns police, military, heavy units, and military portals based on current threat level
 
 const EnemyScene := preload("res://scenes/entities/enemies/enemy.tscn")
+const MilitaryPortalScene := preload("res://scenes/entities/buildings/military_portal.tscn")
 
 # Reference to World (for map access)
 var _world: Node2D
@@ -11,13 +12,16 @@ var _world: Node2D
 var _map_generator: RefCounted
 
 # Spawn timers
-var _police_spawn_timer: float = 0.0
+var _swat_spawn_timer: float = 0.0
 var _military_spawn_timer: float = 0.0
 var _heavy_spawn_timer: float = 0.0
+var _psychic_spawn_timer: float = 0.0
 var _random_enemy_spawn_timer: float = 0.0
+var _military_portal_spawn_timer: float = 0.0
 
 # Current threat level
 var _current_threat_level: Enums.ThreatLevel = Enums.ThreatLevel.NONE
+var _current_threat_value: float = 0.0
 
 # Map dimensions
 var _map_width: int
@@ -30,6 +34,7 @@ func setup(world: Node2D, map_generator: RefCounted, map_width: int, map_height:
 	_map_width = map_width
 	_map_height = map_height
 	EventBus.threat_level_changed.connect(_on_threat_level_changed)
+	EventBus.threat_value_changed.connect(_on_threat_value_changed)
 
 
 func process(delta: float) -> void:
@@ -45,12 +50,12 @@ func process(delta: float) -> void:
 	if _current_threat_level == Enums.ThreatLevel.NONE:
 		return
 
-	# Police spawn at POLICE threat and above
-	if _current_threat_level >= Enums.ThreatLevel.POLICE:
-		_police_spawn_timer += delta
-		if _police_spawn_timer >= GameConstants.POLICE_SPAWN_INTERVAL:
-			_police_spawn_timer = 0.0
-			_try_spawn_enemy(Enums.EnemyType.POLICE, GameConstants.MAX_POLICE)
+	# SWAT spawn at SWAT threat and above
+	if _current_threat_level >= Enums.ThreatLevel.SWAT:
+		_swat_spawn_timer += delta
+		if _swat_spawn_timer >= GameConstants.SWAT_SPAWN_INTERVAL:
+			_swat_spawn_timer = 0.0
+			_try_spawn_enemy(Enums.EnemyType.SWAT, GameConstants.MAX_SWAT)
 
 	# Military spawn at MILITARY threat and above
 	if _current_threat_level >= Enums.ThreatLevel.MILITARY:
@@ -59,12 +64,40 @@ func process(delta: float) -> void:
 			_military_spawn_timer = 0.0
 			_try_spawn_enemy(Enums.EnemyType.MILITARY, GameConstants.MAX_MILITARY)
 
+		# Psychic spawn at MILITARY threat and above
+		_psychic_spawn_timer += delta
+		if _psychic_spawn_timer >= GameConstants.PSYCHIC_SPAWN_INTERVAL:
+			_psychic_spawn_timer = 0.0
+			_try_spawn_enemy(Enums.EnemyType.PSYCHIC, GameConstants.MAX_PSYCHIC)
+
 	# Heavy spawn at HEAVY threat
 	if _current_threat_level >= Enums.ThreatLevel.HEAVY:
 		_heavy_spawn_timer += delta
 		if _heavy_spawn_timer >= GameConstants.HEAVY_SPAWN_INTERVAL:
 			_heavy_spawn_timer = 0.0
 			_try_spawn_enemy(Enums.EnemyType.HEAVY, GameConstants.MAX_HEAVY)
+
+	# Military portal spawn at 70%+ threat
+	if _current_threat_value >= GameConstants.MILITARY_PORTAL_THREAT_THRESHOLD:
+		_military_portal_spawn_timer += delta
+		if _military_portal_spawn_timer >= GameConstants.MILITARY_PORTAL_SPAWN_INTERVAL:
+			_military_portal_spawn_timer = 0.0
+			_try_spawn_military_portal()
+
+
+func _try_spawn_military_portal() -> void:
+	## Try to spawn a military portal if under the max count
+	var current_count := _world.get_tree().get_nodes_in_group(GameConstants.GROUP_MILITARY_PORTALS).size()
+	if current_count >= GameConstants.MILITARY_PORTAL_MAX_COUNT:
+		return
+
+	var spawn_pos := _get_enemy_spawn_position()
+	if spawn_pos == Vector2i(-1, -1):
+		return
+
+	var portal := MilitaryPortalScene.instantiate()
+	_world.human_entities.add_child(portal)
+	portal.setup(spawn_pos)
 
 
 func _try_spawn_enemy(type: Enums.EnemyType, max_count: int) -> void:
@@ -84,17 +117,7 @@ func _try_spawn_enemy(type: Enums.EnemyType, max_count: int) -> void:
 
 
 func _count_enemies_of_type(type: Enums.EnemyType) -> int:
-	var group_name: String
-	match type:
-		Enums.EnemyType.POLICE:
-			group_name = GameConstants.GROUP_POLICE
-		Enums.EnemyType.MILITARY:
-			group_name = GameConstants.GROUP_MILITARY
-		Enums.EnemyType.HEAVY:
-			group_name = GameConstants.GROUP_HEAVY
-		Enums.EnemyType.SPECIAL_FORCES:
-			group_name = GameConstants.GROUP_SPECIAL_FORCES
-
+	var group_name: String = GameConstants.ENEMY_STATS[type].group
 	return _world.get_tree().get_nodes_in_group(group_name).size()
 
 
@@ -134,8 +157,8 @@ func _try_spawn_random_enemy() -> void:
 	var enemy_type: Enums.EnemyType
 	if roll < GameConstants.RANDOM_ENEMY_MILITARY_THRESHOLD:
 		enemy_type = Enums.EnemyType.MILITARY
-	elif roll < GameConstants.RANDOM_ENEMY_POLICE_THRESHOLD:
-		enemy_type = Enums.EnemyType.POLICE
+	elif roll < GameConstants.RANDOM_ENEMY_SWAT_THRESHOLD:
+		enemy_type = Enums.EnemyType.SWAT
 	else:
 		enemy_type = Enums.EnemyType.HEAVY
 
@@ -153,10 +176,17 @@ func _on_threat_level_changed(new_level: Enums.ThreatLevel) -> void:
 	_current_threat_level = new_level
 
 
+func _on_threat_value_changed(new_value: float, _old_value: float) -> void:
+	_current_threat_value = new_value
+
+
 func reset() -> void:
 	## Reset all spawn timers
-	_police_spawn_timer = 0.0
+	_swat_spawn_timer = 0.0
 	_military_spawn_timer = 0.0
 	_heavy_spawn_timer = 0.0
+	_psychic_spawn_timer = 0.0
 	_random_enemy_spawn_timer = 0.0
+	_military_portal_spawn_timer = 0.0
 	_current_threat_level = Enums.ThreatLevel.NONE
+	_current_threat_value = 0.0

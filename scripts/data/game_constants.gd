@@ -22,7 +22,6 @@ const ESSENCE_PER_POLICEMAN := 15
 
 const CIVILIAN_COUNT := 10
 const ANIMAL_COUNT := 8
-const POLICEMAN_COUNT := 5
 const ENTITY_SPAWN_ATTEMPTS := 50  # Max attempts to find valid spawn position
 
 #endregion
@@ -59,21 +58,14 @@ const POLICEMAN_DAMAGE := 5
 
 #region Combat - Enemies
 
-const SWAT_HP := 20
-const SWAT_DAMAGE := 5
-const SWAT_SPEED := 40.0
-
-const MILITARY_HP := 40
-const MILITARY_DAMAGE := 10
-const MILITARY_SPEED := 35.0
-
-const HEAVY_HP := 80
-const HEAVY_DAMAGE := 20
-const HEAVY_SPEED := 25.0
-
-const SPECIAL_FORCES_HP := 50
-const SPECIAL_FORCES_DAMAGE := 15
-const SPECIAL_FORCES_SPEED := 45.0
+# Enemy stats: {hp, damage, speed, group}
+const ENEMY_STATS := {
+	Enums.EnemyType.SWAT: {hp = 20, damage = 5, speed = 40.0, group = "swat"},
+	Enums.EnemyType.MILITARY: {hp = 40, damage = 10, speed = 35.0, group = "military"},
+	Enums.EnemyType.HEAVY: {hp = 80, damage = 20, speed = 25.0, group = "heavy"},
+	Enums.EnemyType.SPECIAL_FORCES: {hp = 50, damage = 15, speed = 45.0, group = "special_forces"},
+	Enums.EnemyType.PSYCHIC: {hp = 15, damage = 8, speed = 50.0, group = "psychic"},
+}
 
 #endregion
 
@@ -82,11 +74,13 @@ const SPECIAL_FORCES_SPEED := 45.0
 const SWAT_SPAWN_INTERVAL := 10.0  # Seconds between spawns
 const MILITARY_SPAWN_INTERVAL := 8.0
 const HEAVY_SPAWN_INTERVAL := 15.0
+const PSYCHIC_SPAWN_INTERVAL := 12.0
 
 const MAX_SWAT := 5
 const MAX_MILITARY := 3
 const MAX_HEAVY := 2
 const MAX_SPECIAL_FORCES := 2
+const MAX_PSYCHIC := 2
 
 const ENEMY_SPAWN_MARGIN := 2  # Tiles from map edge to spawn
 
@@ -109,6 +103,7 @@ const GROUP_SWAT := "swat"
 const GROUP_MILITARY := "military"
 const GROUP_HEAVY := "heavy"
 const GROUP_SPECIAL_FORCES := "special_forces"
+const GROUP_PSYCHIC := "psychic"
 
 #endregion
 
@@ -118,7 +113,9 @@ const GROUP_BUILDINGS := "buildings"
 const GROUP_PORTALS := "portals"
 const GROUP_CORRUPTION_NODES := "corruption_nodes"
 const GROUP_SPAWNING_PITS := "spawning_pits"
-const GROUP_ALARM_TOWERS := "alarm_towers"  # Human defense structures
+const GROUP_ALARM_TOWERS := "alarm_towers"      # Human defense structures
+const GROUP_POLICE_STATIONS := "police_stations"  # Human defense structures
+const GROUP_MILITARY_PORTALS := "military_portals"  # Human military portals
 
 #endregion
 
@@ -126,6 +123,22 @@ const GROUP_ALARM_TOWERS := "alarm_towers"  # Human defense structures
 
 const ALARM_TOWER_COUNT := 3  # Number of alarm towers to spawn on map
 const ALARM_ENEMY_ATTRACT_RADIUS := 128.0  # Pixels - enemies within this range move toward alarm
+
+#endregion
+
+#region Police Stations (Human Defense)
+
+const POLICE_STATION_COUNT := 2  # Number of police stations to spawn on map
+const MAX_POLICEMEN_PER_STATION := 5  # Max policemen each station can maintain
+const POLICE_STATION_SPAWN_INTERVAL := 5.0  # Seconds between policeman spawn attempts
+
+#endregion
+
+#region Military Portals (Human Defense)
+
+const MILITARY_PORTAL_THREAT_THRESHOLD := 0.7  # Threat level (70%) to start spawning portals
+const MILITARY_PORTAL_SPAWN_INTERVAL := 30.0   # Seconds between portal spawns
+const MILITARY_PORTAL_MAX_COUNT := 3           # Max military portals on map
 
 #endregion
 

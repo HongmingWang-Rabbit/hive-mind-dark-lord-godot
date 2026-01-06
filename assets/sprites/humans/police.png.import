@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cwui5dryt8txw"
-path="res://.godot/imported/military_tank_heavy_armored.png-f7f46d0ad176987fc57b5484f26ad641.ctex"
+uid="uid://beipgeubheu5o"
+path="res://.godot/imported/police.png-fb5b7101822579b33cfe8fef31e6855a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/buildings/military_tank_heavy_armored.png"
-dest_files=["res://.godot/imported/military_tank_heavy_armored.png-f7f46d0ad176987fc57b5484f26ad641.ctex"]
+source_file="res://assets/sprites/humans/police.png"
+dest_files=["res://.godot/imported/police.png-fb5b7101822579b33cfe8fef31e6855a.ctex"]
 
 [params]
 

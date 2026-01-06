@@ -15,14 +15,14 @@ Enums.Stance {AGGRESSIVE, HOLD, RETREAT}
 Enums.InteractionMode {NONE, BUILD, ORDER}
 
 # Units - Human World
-Enums.HumanType {CIVILIAN, ANIMAL, POLICE, MILITARY, HEAVY, SPECIAL}
+Enums.HumanType {CIVILIAN, ANIMAL, POLICEMAN}
 
 # Units - Special Forces (invade Dark World)
 Enums.SpecialForcesType {SCOUT, CLEANSER, STRIKE_TEAM}
 
 # World
 Enums.BuildingType {CORRUPTION_NODE, SPAWNING_PIT, PORTAL, MILITARY_PORTAL}
-Enums.ThreatLevel {NONE, POLICE, MILITARY, HEAVY}
+Enums.ThreatLevel {NONE, SWAT, MILITARY, HEAVY}
 Enums.TileType {FLOOR, WALL, PROP, EMPTY}
 Enums.WorldType {CORRUPTED, HUMAN}
 
@@ -55,7 +55,7 @@ GROUP_KILLABLE          # "killable" - entities Dark Lord can attack
 GROUP_MINIONS           # "minions"
 GROUP_THREATS           # "threats" - Dark Lord + minions (civilians flee from)
 GROUP_ENEMIES           # "enemies" - police, military, etc.
-GROUP_POLICE            # "police"
+GROUP_SWAT              # "swat"
 GROUP_MILITARY          # "military"
 GROUP_HEAVY             # "heavy"
 GROUP_SPECIAL_FORCES    # "special_forces"
@@ -89,7 +89,7 @@ PORTAL_INITIAL_CORRUPTION_RANGE # Corruption radius in Human World (1)
 WIN_THRESHOLD           # Corruption % to win (0.8 = 80% Human World)
 
 #region Threat System (modular, float-based 0.0-1.0)
-THREAT_LEVEL_THRESHOLDS          # [0.25, 0.5, 0.75] → POLICE, MILITARY, HEAVY
+THREAT_LEVEL_THRESHOLDS          # [0.25, 0.5, 0.75] → SWAT, MILITARY, HEAVY
 THREAT_CORRUPTION_MIN            # 0.2 - corruption % where threat starts
 THREAT_CORRUPTION_MAX            # 0.8 - corruption % where threat maxes out
 THREAT_MILITARY_SIGHTING_FLOOR   # 0.5 - floor when military spots Dark Lord

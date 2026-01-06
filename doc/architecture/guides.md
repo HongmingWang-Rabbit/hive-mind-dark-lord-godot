@@ -80,7 +80,7 @@ That's it. No changes to ThreatSystem needed.
 - `ThreatSystem.set_source(id, value)` stores each source
 - Final threat = max(all sources)
 - Threat only increases (lower values ignored)
-- Enum tier derived from thresholds: 0.25=POLICE, 0.5=MILITARY, 0.75=HEAVY
+- Enum tier derived from thresholds: 0.25=SWAT, 0.5=MILITARY, 0.75=HEAVY
 
 ## New Component (Composition Pattern)
 1. Create `scripts/components/YourComponent.gd`

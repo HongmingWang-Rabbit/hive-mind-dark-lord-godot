@@ -131,7 +131,7 @@ Enums.Stance {AGGRESSIVE, HOLD, RETREAT}
 Enums.InteractionMode {NONE, BUILD, ORDER}
 
 # Units - Human World
-Enums.HumanType {CIVILIAN, ANIMAL, POLICE, MILITARY, HEAVY, SPECIAL}
+Enums.HumanType {CIVILIAN, ANIMAL, POLICEMAN}
 
 # Units - Special Forces (invade Dark World)
 Enums.SpecialForcesType {SCOUT, CLEANSER, STRIKE_TEAM}
@@ -218,21 +218,33 @@ ESSENCE_PER_KILL        # Bonus for kills
 ESSENCE_PER_POSSESS     # Bonus for possession
 ESSENCE_PER_CIVILIAN    # +10 - reward for killing civilians
 ESSENCE_PER_ANIMAL      # +5 - reward for killing animals
+ESSENCE_PER_POLICEMAN   # +15 - reward for killing policemen
 
 #region Human World Entities
 CIVILIAN_COUNT          # Number of civilians to spawn (10)
 ANIMAL_COUNT            # Number of animals to spawn (8)
 ENTITY_SPAWN_ATTEMPTS   # Max attempts to find valid spawn position (50)
 
+#region Police Stations (Human Defense)
+POLICE_STATION_COUNT            # Number of police stations to spawn (2)
+MAX_POLICEMEN_PER_STATION       # Max policemen each station can maintain (5)
+POLICE_STATION_SPAWN_INTERVAL   # Seconds between policeman spawn attempts (5.0)
+
+#region Military Portals (Human Defense)
+MILITARY_PORTAL_THREAT_THRESHOLD  # Threat level (70%) to start spawning portals
+MILITARY_PORTAL_SPAWN_INTERVAL    # Seconds between portal spawns (30.0)
+MILITARY_PORTAL_MAX_COUNT         # Max military portals on map (3)
+
 #region Entity Groups (use for add_to_group/is_in_group)
 GROUP_DARK_LORD         # "dark_lord"
 GROUP_CIVILIANS         # "civilians"
 GROUP_ANIMALS           # "animals"
+GROUP_POLICEMEN         # "policemen"
 GROUP_KILLABLE          # "killable" - entities Dark Lord can attack
 GROUP_MINIONS           # "minions"
 GROUP_THREATS           # "threats" - Dark Lord + minions (civilians flee from)
 GROUP_ENEMIES           # "enemies" - police, military, etc.
-GROUP_POLICE            # "police"
+GROUP_SWAT              # "swat"
 GROUP_MILITARY          # "military"
 GROUP_HEAVY             # "heavy"
 GROUP_SPECIAL_FORCES    # "special_forces"
@@ -241,6 +253,8 @@ GROUP_PORTALS           # "portals"
 GROUP_CORRUPTION_NODES  # "corruption_nodes"
 GROUP_SPAWNING_PITS     # "spawning_pits"
 GROUP_ALARM_TOWERS      # "alarm_towers" - human defense structures
+GROUP_POLICE_STATIONS   # "police_stations" - human defense structures
+GROUP_MILITARY_PORTALS  # "military_portals" - human military portals
 
 #region Alarm Towers (Human Defense)
 ALARM_TOWER_COUNT           # 3 - towers spawned per map
@@ -256,9 +270,14 @@ DARK_LORD_ATTACK_COOLDOWN # 0.5s between attacks
 #region Combat - Entities
 CIVILIAN_HP             # 10 - keep synced with CivilianData.HP
 ANIMAL_HP               # 10 - keep synced with AnimalData.HP
+POLICEMAN_HP            # 25 - policemen are tougher
+POLICEMAN_DAMAGE        # 5 - damage dealt to threats
 
 #region Units
 MINION_STATS[MinionType] = {cost, upkeep, hp, damage, speed}
+
+#region Combat - Enemies
+ENEMY_STATS[EnemyType] = {hp, damage, speed, group}  # Unified enemy stats dictionary
 
 #region Buildings
 BUILDING_STATS[BuildingType] = {cost, hp, ...}  # Buildings have HP, can be destroyed by enemies
@@ -425,7 +444,7 @@ Both worlds have identical terrain layout but **separate entities and fog**. Eac
 | Level    | Human World                   | Dark World                              |
 |----------|-------------------------------|-----------------------------------------|
 | NONE     | Peaceful                      | Safe                                    |
-| LOW      | Police investigate            | Safe                                    |
+| LOW      | SWAT investigate              | Safe                                    |
 | MEDIUM   | Military patrols              | Special forces scout near portals       |
 | HIGH     | Heavy military deployed       | Military opens own portals, invades     |
 | CRITICAL | Full war, all units attack    | Coordinated assault to kill Dark Lord   |
@@ -492,7 +511,7 @@ WORLD_BUTTON_HUMAN      # "Human"
 ESSENCE_FORMAT          # "E:%d" (compact for 480x270 viewport)
 CORRUPTION_FORMAT       # "C:%d%%"
 THREAT_FORMAT           # "T:%s"
-THREAT_LEVEL_NAMES      # ["None", "Police", "Military", "Heavy"]
+THREAT_LEVEL_NAMES      # ["None", "SWAT", "Military", "Heavy"]
 BUILDING_TOOLTIP_FORMAT # "%s (%d)\n%s" - "Name (cost)\nDescription"
 MODE_BUILD              # "Click to place"
 MODE_ORDER              # "Click to target"
@@ -858,7 +877,7 @@ DarkLord [CharacterBody2D] (DarkLordController.gd)
 
 ## Human World Entities
 
-Civilians and animals spawn in Human World, wander randomly, and provide essence when killed by the Dark Lord.
+Civilians, animals, and policemen spawn in Human World. Civilians and animals wander randomly and provide essence when killed. Policemen randomly fight or flee when detecting threats.
 
 ### File Organization
 ```
@@ -866,11 +885,14 @@ scripts/entities/humans/
 ├── CivilianData.gd       # Civilian constants (preload pattern)
 ├── CivilianController.gd # Civilian behavior
 ├── AnimalData.gd         # Animal constants (preload pattern)
-└── AnimalController.gd   # Animal behavior
+├── AnimalController.gd   # Animal behavior
+├── PolicemanData.gd      # Policeman constants (preload pattern)
+└── PolicemanController.gd # Policeman behavior (fight/flight)
 
 scenes/entities/humans/
 ├── civilian.tscn         # Civilian scene
-└── animal.tscn           # Animal scene
+├── animal.tscn           # Animal scene
+└── policeman.tscn        # Policeman scene
 ```
 
 ### Entity Data Pattern
@@ -1176,37 +1198,63 @@ scenes/entities/enemies/
 ```
 
 ### Enemy Types
-| Type | HP | Damage | Speed | Collision | Sprite | Spawns At |
-|------|-----|--------|-------|-----------|--------|-----------|
-| POLICE | 20 | 5 | 40 | 5.0 | Soldier | POLICE threat |
-| MILITARY | 40 | 10 | 35 | 5.0 | Soldier | MILITARY threat |
-| HEAVY | 80 | 20 | 25 | 10.0 | Tank | HEAVY threat |
-| SPECIAL_FORCES | 50 | 15 | 45 | 5.0 | Soldier | HEAVY threat (Dark World invasion) |
+| Type | HP | Damage | Speed | Collision | Detection | Sprite | Spawns At |
+|------|-----|--------|-------|-----------|-----------|--------|-----------|
+| SWAT | 20 | 5 | 40 | 5.0 | 48 | Soldier | SWAT threat |
+| MILITARY | 40 | 10 | 35 | 5.0 | 48 | Soldier | MILITARY threat |
+| HEAVY | 80 | 20 | 25 | 10.0 | 48 | Tank | HEAVY threat |
+| SPECIAL_FORCES | 50 | 15 | 45 | 5.0 | 48 | Soldier | HEAVY threat |
+| PSYCHIC | 15 | 8 | 50 | 4.0 | 80 | Psych Boy | MILITARY threat |
+
+### Stats Configuration (GameConstants.ENEMY_STATS)
+Enemy combat stats use unified dictionary pattern for scalability:
+```gdscript
+# GameConstants.gd - balance values
+const ENEMY_STATS := {
+	Enums.EnemyType.SWAT: {hp = 20, damage = 5, speed = 40.0, group = "swat"},
+	Enums.EnemyType.MILITARY: {hp = 40, damage = 10, speed = 35.0, group = "military"},
+	Enums.EnemyType.HEAVY: {hp = 80, damage = 20, speed = 25.0, group = "heavy"},
+	Enums.EnemyType.SPECIAL_FORCES: {hp = 50, damage = 15, speed = 45.0, group = "special_forces"},
+	Enums.EnemyType.PSYCHIC: {hp = 15, damage = 8, speed = 50.0, group = "psychic"},
+}
+
+# EnemyController.gd setup uses dictionary lookup
+func setup(type: Enums.EnemyType) -> void:
+	enemy_type = type
+	var stats: Dictionary = GameConstants.ENEMY_STATS[type]
+	_damage = stats.damage
+	_speed = stats.speed
+	add_to_group(stats.group)
+	# ... setup functions
+```
 
 ### Per-Type Configuration (EnemyData.gd)
-Enemy types have per-type sprite, collision, and scale settings:
+Entity-specific (non-balance) values like sprites and collision:
 ```gdscript
 # Per-type sprite paths
 const SPRITE_PATHS := {
-    Enums.EnemyType.POLICE: "res://assets/sprites/military/military_soldier_tactical.png",
-    Enums.EnemyType.HEAVY: "res://assets/sprites/buildings/military_tank_heavy_armored.png",
-    # ...
+	Enums.EnemyType.SWAT: "res://assets/sprites/military/military_soldier_tactical.png",
+	Enums.EnemyType.HEAVY: "res://assets/sprites/military/military_tank_heavy_armored.png",
+	Enums.EnemyType.PSYCHIC: "res://assets/sprites/military/psych_boy.png",
+	# ...
 }
 
 # Per-type collision radii
 const COLLISION_RADII := {
-    Enums.EnemyType.HEAVY: 10.0,  # Tank is bigger
-    # ...
+	Enums.EnemyType.HEAVY: 10.0,   # Tank is bigger
+	Enums.EnemyType.PSYCHIC: 4.0,  # Slightly smaller
+	# ...
 }
 
-# Per-type sprite size ratios
-const SPRITE_SIZE_RATIOS := {
-    Enums.EnemyType.HEAVY: 1.5,  # Tank displays larger
-    # ...
+# Per-type detection radii
+const DETECTION_RADII := {
+	Enums.EnemyType.SWAT: 48.0,
+	Enums.EnemyType.PSYCHIC: 80.0,  # Extended psychic sensing range
+	# ...
 }
 ```
 
-Sprites are loaded dynamically in `setup(type)` based on the enemy type.
+Sprites and detection ranges are loaded dynamically in `setup(type)` based on the enemy type.
 
 ### Behavior States
 | State | Description |
@@ -1311,6 +1359,138 @@ AlarmTower [StaticBody2D] (AlarmTowerController.gd)
 ├── TriggerArea [Area2D] - Detects civilians
 │   └── CollisionShape2D - Trigger radius
 └── CooldownTimer - Prevents spam triggering
+```
+
+---
+
+## Policeman Entity
+
+Human world law enforcement that randomly chooses to fight or flee when detecting threats.
+
+### File Organization
+```
+scripts/entities/humans/
+├── PolicemanData.gd       # Policeman constants (preload pattern)
+└── PolicemanController.gd # Policeman behavior script
+
+scenes/entities/humans/
+└── policeman.tscn         # Scene file
+```
+
+### Fight/Flight Decision
+When a policeman first detects a threat (Dark Lord, minions):
+- 50% chance to FIGHT: Chase and attack the threat
+- 50% chance to FLEE: Run toward alarm tower (or just flee if none found)
+
+Decision is made once per encounter and persists until threat leaves detection range.
+
+### Behavior States
+| State | Description |
+|-------|-------------|
+| WANDER | Normal wandering behavior |
+| FLEE | Running away from threat (no tower or chose to flee) |
+| FLEE_TO_ALARM | Running toward nearest alarm tower |
+| CHASE | Pursuing detected threat (chose to fight) |
+| ATTACK | Attacking target in range |
+
+### Data Script Constants (PolicemanData.gd)
+```gdscript
+SPRITE_PATH              # Path to policeman sprite
+COLLISION_RADIUS         # 5.0 - physical collision size
+SPRITE_SIZE_RATIO        # 1.0 - visual size relative to collision
+
+# Movement
+WANDER_SPEED             # 30.0 - normal movement
+WANDER_INTERVAL_MIN/MAX  # Wait time between moves
+
+# Flee behavior (when choosing to run)
+FLEE_SPEED               # 45.0 - faster than wander
+FLEE_DETECTION_RADIUS    # 56.0 (~3.5 tiles) - slightly better awareness than civilians
+FLEE_SAFE_DISTANCE       # 80.0 (5 tiles) - stop fleeing when this far
+
+# Fight behavior (when choosing to fight)
+CHASE_SPEED              # 40.0 - pursuit speed
+ATTACK_RANGE             # 14.0 - melee attack range
+ATTACK_COOLDOWN          # 0.8s - between attacks
+
+# Behavior chance
+FIGHT_CHANCE             # 50 (0-100) - % chance to fight vs flee
+
+# Alarm tower seeking
+ALARM_TOWER_SEARCH_RADIUS    # 200.0px - same as civilians
+ALARM_TOWER_ARRIVAL_DISTANCE # 16.0px - close enough to trigger
+```
+
+### GameConstants
+```gdscript
+GROUP_POLICEMEN               # "policemen" - group name
+GROUP_POLICE_STATIONS         # "police_stations" - police station buildings
+POLICE_STATION_COUNT          # 2 - police stations spawned per map
+MAX_POLICEMEN_PER_STATION     # 5 - max policemen each station maintains
+POLICE_STATION_SPAWN_INTERVAL # 5.0 - seconds between policeman spawn attempts
+POLICEMAN_HP                  # 25 - higher than civilians
+POLICEMAN_DAMAGE              # 5 - can hurt Dark Lord/minions
+ESSENCE_PER_POLICEMAN         # 15 - reward for killing
+```
+
+### Police Stations
+- Spawn randomly on the map (like alarm towers)
+- Each station spawns and maintains up to MAX_POLICEMEN_PER_STATION policemen
+- Policemen spawn near their station every POLICE_STATION_SPAWN_INTERVAL seconds (if under max count)
+- Dead policemen are automatically replaced over time
+
+### Combat
+- Policemen can damage Dark Lord and minions
+- Uses HealthComponent for HP tracking
+- Adds to GROUP_KILLABLE (can be killed by player forces)
+- Awards essence when killed
+
+### Alarm Tower Interaction
+Policemen can trigger alarm towers when fleeing (same as civilians):
+- Implements `is_fleeing() -> bool` for alarm tower detection
+- Implements `on_alarm_triggered()` callback to calm down after triggering
+
+### Scene Structure (policeman.tscn)
+```
+Policeman [CharacterBody2D] (PolicemanController.gd)
+├── Sprite2D - Visual representation
+├── CollisionShape2D - Physics collision
+├── WanderTimer - Controls movement timing
+├── DetectionArea [Area2D] - Detects threats for fight/flee decision
+│   └── CollisionShape2D - Detection radius
+├── AttackRange [Area2D] - Detects targets to attack
+│   └── CollisionShape2D - Attack radius
+└── AttackTimer - Cooldown between attacks
+```
+
+---
+
+## Military Portals
+
+Human military gateways that spawn when threat level reaches 70%. Enemies walk through to invade the Corrupted World.
+
+### GameConstants
+```gdscript
+GROUP_MILITARY_PORTALS           # "military_portals" - group name
+MILITARY_PORTAL_THREAT_THRESHOLD # 0.7 - threat level to start spawning
+MILITARY_PORTAL_SPAWN_INTERVAL   # 30.0 - seconds between portal spawns
+MILITARY_PORTAL_MAX_COUNT        # 3 - max portals on map
+```
+
+### Behavior
+- Spawn at map edges when threat >= 70% (every 30 seconds)
+- Enemies (from regular spawning) walk through to enter Corrupted World
+- One-way travel: Human World → Corrupted World
+- Player cannot close or destroy military portals
+- Up to 3 portals can exist simultaneously
+
+### Scene Structure (military_portal.tscn)
+```
+MilitaryPortal [StaticBody2D] (MilitaryPortalController.gd)
+├── Sprite2D - Visual representation
+├── CollisionShape2D - Physics collision
+└── TravelArea [Area2D] - Detects enemies entering portal
+    └── CollisionShape2D - Travel trigger radius
 ```
 
 ---

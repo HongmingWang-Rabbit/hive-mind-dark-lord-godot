@@ -56,7 +56,7 @@ WORLD_BUTTON_HUMAN      # "Human"
 ESSENCE_FORMAT          # "E:%d" (compact for 480x270 viewport)
 CORRUPTION_FORMAT       # "C:%d%%"
 THREAT_FORMAT           # "T:%s"
-THREAT_LEVEL_NAMES      # ["None", "Police", "Military", "Heavy"]
+THREAT_LEVEL_NAMES      # ["None", "SWAT", "Military", "Heavy"]
 BUILDING_TOOLTIP_FORMAT # "%s (%d)\n%s" - "Name (cost)\nDescription"
 MODE_BUILD              # "Click to place"
 MODE_ORDER              # "Click to target"

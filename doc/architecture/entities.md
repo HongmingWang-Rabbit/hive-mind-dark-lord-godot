@@ -246,7 +246,7 @@ scenes/entities/enemies/
 ### Enemy Types
 | Type | HP | Damage | Speed | Spawns At |
 |------|-----|--------|-------|-----------|
-| POLICE | 20 | 5 | 40 | POLICE threat |
+| SWAT | 20 | 5 | 40 | SWAT threat |
 | MILITARY | 40 | 10 | 35 | MILITARY threat |
 | HEAVY | 80 | 20 | 25 | HEAVY threat |
 | SPECIAL_FORCES | 50 | 15 | 45 | HEAVY threat (Dark World invasion) |

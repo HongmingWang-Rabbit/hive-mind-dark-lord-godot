@@ -11,15 +11,15 @@ enum Stance {AGGRESSIVE, HOLD, RETREAT}
 
 # World
 enum BuildingType {CORRUPTION_NODE, SPAWNING_PIT, PORTAL}
-enum ThreatLevel {NONE, POLICE, MILITARY, HEAVY}
+enum ThreatLevel {NONE, SWAT, MILITARY, HEAVY}
 enum TileType {FLOOR, WALL, PROP, EMPTY}
 enum WorldType {CORRUPTED, HUMAN}
 
 # Human World entities
-enum HumanType {CIVILIAN, ANIMAL}
+enum HumanType {CIVILIAN, ANIMAL, POLICEMAN}
 
 # Enemy types (military forces)
-enum EnemyType {POLICE, MILITARY, HEAVY, SPECIAL_FORCES}
+enum EnemyType {SWAT, MILITARY, HEAVY, SPECIAL_FORCES, PSYCHIC}
 
 # Interaction modes
 enum InteractionMode {NONE, BUILD, ORDER}

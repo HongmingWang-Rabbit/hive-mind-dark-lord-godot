@@ -10,26 +10,38 @@ const SPRITE_SIZE_RATIO := 1.0
 
 # Per-type sprite paths
 const SPRITE_PATHS := {
-	Enums.EnemyType.POLICE: "res://assets/sprites/military/military_soldier_tactical.png",
+	Enums.EnemyType.SWAT: "res://assets/sprites/military/military_soldier_tactical.png",
 	Enums.EnemyType.MILITARY: "res://assets/sprites/military/military_soldier_tactical.png",
-	Enums.EnemyType.HEAVY: "res://assets/sprites/buildings/military_tank_heavy_armored.png",
+	Enums.EnemyType.HEAVY: "res://assets/sprites/military/military_tank_heavy_armored.png",
 	Enums.EnemyType.SPECIAL_FORCES: "res://assets/sprites/military/military_soldier_tactical.png",
+	Enums.EnemyType.PSYCHIC: "res://assets/sprites/military/psych_boy.png",
 }
 
 # Per-type collision radii (heavy units are larger)
 const COLLISION_RADII := {
-	Enums.EnemyType.POLICE: 5.0,
+	Enums.EnemyType.SWAT: 5.0,
 	Enums.EnemyType.MILITARY: 5.0,
 	Enums.EnemyType.HEAVY: 10.0,  # Tank is bigger
 	Enums.EnemyType.SPECIAL_FORCES: 5.0,
+	Enums.EnemyType.PSYCHIC: 4.0,  # Slightly smaller
 }
 
 # Per-type sprite size ratios
 const SPRITE_SIZE_RATIOS := {
-	Enums.EnemyType.POLICE: 1.0,
+	Enums.EnemyType.SWAT: 1.0,
 	Enums.EnemyType.MILITARY: 1.0,
 	Enums.EnemyType.HEAVY: 1.5,  # Tank sprite displayed larger
 	Enums.EnemyType.SPECIAL_FORCES: 1.0,
+	Enums.EnemyType.PSYCHIC: 0.9,  # Slightly smaller sprite
+}
+
+# Per-type detection radii
+const DETECTION_RADII := {
+	Enums.EnemyType.SWAT: 48.0,
+	Enums.EnemyType.MILITARY: 48.0,
+	Enums.EnemyType.HEAVY: 48.0,
+	Enums.EnemyType.SPECIAL_FORCES: 48.0,
+	Enums.EnemyType.PSYCHIC: 80.0,  # Extended psychic sensing range
 }
 
 # AI behavior

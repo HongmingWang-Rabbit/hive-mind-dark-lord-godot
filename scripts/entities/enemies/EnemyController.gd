@@ -15,7 +15,7 @@ enum State { PATROL, CHASE, ATTACK, INVESTIGATE }
 @onready var patrol_timer: Timer = $PatrolTimer
 
 # Configuration
-var enemy_type: Enums.EnemyType = Enums.EnemyType.POLICE
+var enemy_type: Enums.EnemyType = Enums.EnemyType.SWAT
 
 # State
 var _damage: int
@@ -47,32 +47,15 @@ func _ready() -> void:
 func setup(type: Enums.EnemyType) -> void:
 	## Call after instantiation to configure enemy type
 	enemy_type = type
-	var max_hp: int
-	match type:
-		Enums.EnemyType.POLICE:
-			max_hp = GameConstants.POLICE_HP
-			_damage = GameConstants.POLICE_DAMAGE
-			_speed = GameConstants.POLICE_SPEED
-			add_to_group(GameConstants.GROUP_POLICE)
-		Enums.EnemyType.MILITARY:
-			max_hp = GameConstants.MILITARY_HP
-			_damage = GameConstants.MILITARY_DAMAGE
-			_speed = GameConstants.MILITARY_SPEED
-			add_to_group(GameConstants.GROUP_MILITARY)
-		Enums.EnemyType.HEAVY:
-			max_hp = GameConstants.HEAVY_HP
-			_damage = GameConstants.HEAVY_DAMAGE
-			_speed = GameConstants.HEAVY_SPEED
-			add_to_group(GameConstants.GROUP_HEAVY)
-		Enums.EnemyType.SPECIAL_FORCES:
-			max_hp = GameConstants.SPECIAL_FORCES_HP
-			_damage = GameConstants.SPECIAL_FORCES_DAMAGE
-			_speed = GameConstants.SPECIAL_FORCES_SPEED
-			add_to_group(GameConstants.GROUP_SPECIAL_FORCES)
+	var stats: Dictionary = GameConstants.ENEMY_STATS[type]
+	_damage = stats.damage
+	_speed = stats.speed
+	add_to_group(stats.group)
 	_setup_sprite(type)
 	_setup_collision_shape(type)
 	_setup_sprite_scale(type)
-	_setup_health_component(max_hp)
+	_setup_detection_radius(type)
+	_setup_health_component(stats.hp)
 
 
 func _setup_sprite(type: Enums.EnemyType) -> void:
@@ -97,6 +80,16 @@ func _setup_sprite_scale(type: Enums.EnemyType) -> void:
 	var max_dimension := maxf(texture_size.x, texture_size.y)
 	var scale_factor := desired_diameter / max_dimension
 	sprite.scale = Vector2(scale_factor, scale_factor)
+
+
+func _setup_detection_radius(type: Enums.EnemyType) -> void:
+	## Update detection radius for types with custom detection range
+	var detect_radius: float = Data.DETECTION_RADII.get(type, Data.DETECTION_RADIUS)
+	var detect_shape := detection_area.get_node("CollisionShape2D") as CollisionShape2D
+	if detect_shape:
+		var circle := CircleShape2D.new()
+		circle.radius = detect_radius
+		detect_shape.shape = circle
 
 
 func _setup_detection() -> void:

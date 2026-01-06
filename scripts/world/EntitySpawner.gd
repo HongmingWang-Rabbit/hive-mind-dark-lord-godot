@@ -1,6 +1,7 @@
 extends RefCounted
-## Handles spawning of entities: Dark Lord, civilians, animals, minions
+## Handles spawning of entities: Dark Lord, civilians, animals, police stations, minions
 ## Uses preloaded scenes for instantiation
+## Note: Policemen are spawned by PoliceStationController, not directly by this spawner
 
 const DarkLordScene := preload("res://scenes/entities/dark_lord/dark_lord.tscn")
 const CivilianScene := preload("res://scenes/entities/humans/civilian.tscn")
@@ -8,6 +9,7 @@ const AnimalScene := preload("res://scenes/entities/humans/animal.tscn")
 const MinionScene := preload("res://scenes/entities/minions/minion.tscn")
 const CorruptionNodeScene := preload("res://scenes/entities/buildings/corruption_node.tscn")
 const AlarmTowerScene := preload("res://scenes/entities/buildings/alarm_tower.tscn")
+const PoliceStationScene := preload("res://scenes/entities/buildings/police_station.tscn")
 
 # Reference to World (for map access)
 var _world: Node2D
@@ -48,8 +50,9 @@ func spawn_initial_corruption_node(initial_tile: Vector2i) -> void:
 
 
 func spawn_human_world_entities() -> void:
-	## Spawn civilians, animals, and alarm towers in Human World
+	## Spawn civilians, animals, police stations, and alarm towers in Human World
 	_spawn_alarm_towers()
+	_spawn_police_stations()
 	_spawn_civilians()
 	_spawn_animals()
 
@@ -74,6 +77,14 @@ func _spawn_animals() -> void:
 		var animal := AnimalScene.instantiate()
 		var spawn_pos := _get_random_floor_tile()
 		_place_entity_at_tile(animal, spawn_pos, Enums.WorldType.HUMAN)
+
+
+func _spawn_police_stations() -> void:
+	for i in GameConstants.POLICE_STATION_COUNT:
+		var station := PoliceStationScene.instantiate()
+		var spawn_pos := _get_random_floor_tile()
+		_world.human_entities.add_child(station)
+		station.setup(spawn_pos)
 
 
 func _place_entity_at_tile(entity: Node2D, tile_pos: Vector2i, world: Enums.WorldType) -> void:

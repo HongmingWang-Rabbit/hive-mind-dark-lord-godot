@@ -109,7 +109,7 @@ reset()                                      # Clear all sources
 ```gdscript
 # GameConstants.THREAT_LEVEL_THRESHOLDS = [0.25, 0.5, 0.75]
 0.0-0.25  → NONE
-0.25-0.5  → POLICE
+0.25-0.5  → SWAT
 0.5-0.75  → MILITARY
 0.75-1.0  → HEAVY
 ```
