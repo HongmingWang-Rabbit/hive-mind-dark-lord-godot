@@ -55,6 +55,33 @@ Military portals are AI-controlled and open at HIGH+ threat:
 2. Reference via `GameConstants.YOUR_CONSTANT`
 3. Never hardcode numbers in logic files
 
+## New Threat Source
+Add a new way to increase threat level:
+
+1. **Add constants** (optional but recommended):
+```gdscript
+# In GameConstants:
+const THREAT_SOURCE_BOSS_SPOTTED := "boss_spotted"
+const THREAT_BOSS_SPOTTED_FLOOR := 0.75
+```
+
+2. **Trigger from your code**:
+```gdscript
+# When the trigger happens:
+ThreatSystem.set_source(
+    GameConstants.THREAT_SOURCE_BOSS_SPOTTED,
+    GameConstants.THREAT_BOSS_SPOTTED_FLOOR
+)
+```
+
+That's it. No changes to ThreatSystem needed.
+
+### How It Works
+- `ThreatSystem.set_source(id, value)` stores each source
+- Final threat = max(all sources)
+- Threat only increases (lower values ignored)
+- Enum tier derived from thresholds: 0.25=POLICE, 0.5=MILITARY, 0.75=HEAVY
+
 ## New Component (Composition Pattern)
 1. Create `scripts/components/YourComponent.gd`
 2. Extend Node2D or appropriate base

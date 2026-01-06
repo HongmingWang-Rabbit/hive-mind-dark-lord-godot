@@ -299,6 +299,11 @@ func _on_detection_area_body_entered(body: Node2D) -> void:
 			_chase_target = body
 			_state = State.CHASE
 
+		# Military sighting: configured enemy types spotting Dark Lord trigger threat increase
+		if body.is_in_group(GameConstants.GROUP_DARK_LORD):
+			if enemy_type in GameConstants.THREAT_REPORTING_ENEMY_TYPES:
+				EventBus.dark_lord_spotted_by_military.emit(global_position)
+
 
 func _on_detection_area_body_exited(body: Node2D) -> void:
 	_threats_detected.erase(body)

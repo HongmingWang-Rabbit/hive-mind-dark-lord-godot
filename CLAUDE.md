@@ -28,6 +28,7 @@ SpatialGrid    → Spatial partitioning for efficient neighbor queries
 WorldManager   → Dual-world state and portal tracking
 Essence        → Resource system (income/drain)
 HivePool       → Minion pool tracking
+ThreatSystem   → Modular threat from multiple sources
 GameManager    → Game state, win/lose conditions
 ```
 
@@ -121,7 +122,7 @@ scripts/
   entities/     # Entity scripts organized by entity type
     dark_lord/  # DarkLordData.gd, DarkLordController.gd
     buildings/  # PortalData/Controller, CorruptionNodeData/Controller, SpawningPitData/Controller
-    humans/     # CivilianData.gd, CivilianController.gd, AnimalData.gd, AnimalController.gd
+    humans/     # CivilianData/Controller, AnimalData/Controller, PolicemanData/Controller
     minions/    # MinionData.gd, MinionController.gd
     enemies/    # EnemyData.gd, EnemyController.gd
   ui/           # UI controller scripts
@@ -137,7 +138,7 @@ scenes/
   entities/     # Entity scenes organized by entity type
     dark_lord/  # dark_lord.tscn
     buildings/  # portal.tscn, corruption_node.tscn, spawning_pit.tscn
-    humans/     # civilian.tscn, animal.tscn
+    humans/     # civilian.tscn, animal.tscn, policeman.tscn
     minions/    # minion.tscn
     enemies/    # enemy.tscn
   ui/           # hud.tscn
@@ -226,10 +227,10 @@ Edit `scripts/data/game_constants.gd`:
 # Essence & Economy
 STARTING_ESSENCE, DARK_LORD_UPKEEP
 ESSENCE_PER_TILE, ESSENCE_PER_KILL
-ESSENCE_PER_CIVILIAN, ESSENCE_PER_ANIMAL
+ESSENCE_PER_CIVILIAN, ESSENCE_PER_ANIMAL, ESSENCE_PER_POLICEMAN
 
 # Human World Entities
-CIVILIAN_COUNT, ANIMAL_COUNT
+CIVILIAN_COUNT, ANIMAL_COUNT, POLICEMAN_COUNT
 ENTITY_SPAWN_ATTEMPTS
 
 # Combat - Dark Lord
@@ -237,10 +238,10 @@ DARK_LORD_HP, DARK_LORD_DAMAGE
 DARK_LORD_ATTACK_RANGE, DARK_LORD_ATTACK_COOLDOWN
 
 # Combat - Entities
-CIVILIAN_HP, ANIMAL_HP
+CIVILIAN_HP, ANIMAL_HP, POLICEMAN_HP, POLICEMAN_DAMAGE
 
 # Entity Groups (use for add_to_group/is_in_group)
-GROUP_DARK_LORD, GROUP_CIVILIANS, GROUP_ANIMALS
+GROUP_DARK_LORD, GROUP_CIVILIANS, GROUP_ANIMALS, GROUP_POLICEMEN
 GROUP_KILLABLE, GROUP_MINIONS, GROUP_THREATS
 GROUP_ENEMIES, GROUP_POLICE, GROUP_MILITARY
 GROUP_BUILDINGS, GROUP_PORTALS, GROUP_CORRUPTION_NODES, GROUP_SPAWNING_PITS
@@ -260,7 +261,16 @@ ENEMY_SPAWN_MARGIN
 KEY_SPAWN_CRAWLER, KEY_SPAWN_BRUTE, KEY_SPAWN_STALKER
 
 # Win/Lose
-WIN_THRESHOLD, THREAT_THRESHOLDS
+WIN_THRESHOLD
+
+# Threat System (modular, float-based 0.0-1.0)
+THREAT_LEVEL_THRESHOLDS          # [0.25, 0.5, 0.75] → POLICE, MILITARY, HEAVY
+THREAT_CORRUPTION_MIN            # 0.2 - corruption % where threat starts
+THREAT_CORRUPTION_MAX            # 0.8 - corruption % where threat maxes out
+THREAT_MILITARY_SIGHTING_FLOOR   # 0.5 - floor when military spots Dark Lord
+THREAT_ALARM_TOWER_FLOOR         # 0.5 - floor when alarm triggered
+THREAT_SOURCE_*                  # Source IDs for ThreatSystem.set_source()
+THREAT_REPORTING_ENEMY_TYPES     # Enemy types that report Dark Lord sightings
 
 # Corruption Spread
 CORRUPTION_SPREAD_INTERVAL  # Seconds between node spread ticks
@@ -342,3 +352,4 @@ const CHAR_SKELETON := Vector2i(3, 7)
 - For continuous fog reveal during movement, track `_last_tile_pos` and call fog update when crossing tile boundaries
 - For killable entities: use `HealthComponent`, connect `died` signal, implement `take_damage()` to delegate, add to `GROUP_KILLABLE`
 - For world-separated collision: implement `set_world_collision(world)` to set layer/mask, call when spawning and on portal transfer
+- For threat sources: use `ThreatSystem.set_source(source_id, value)` - threat = max(all sources), only increases

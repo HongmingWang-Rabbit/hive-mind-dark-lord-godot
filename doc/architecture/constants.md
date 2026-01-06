@@ -22,7 +22,7 @@ Enums.SpecialForcesType {SCOUT, CLEANSER, STRIKE_TEAM}
 
 # World
 Enums.BuildingType {CORRUPTION_NODE, SPAWNING_PIT, PORTAL, MILITARY_PORTAL}
-Enums.ThreatLevel {NONE, LOW, MEDIUM, HIGH, CRITICAL}
+Enums.ThreatLevel {NONE, POLICE, MILITARY, HEAVY}
 Enums.TileType {FLOOR, WALL, PROP, EMPTY}
 Enums.WorldType {CORRUPTED, HUMAN}
 
@@ -86,8 +86,18 @@ CORRUPTION_NODE_RANGE           # Max tiles from node for spreading (5)
 PORTAL_INITIAL_CORRUPTION_RANGE # Corruption radius in Human World (1)
 
 #region Win/Lose
-WIN_THRESHOLD           # Corruption % to win (1.0 = 100% Human World)
-THREAT_THRESHOLDS       # Array of corruption % triggers for each threat level
+WIN_THRESHOLD           # Corruption % to win (0.8 = 80% Human World)
+
+#region Threat System (modular, float-based 0.0-1.0)
+THREAT_LEVEL_THRESHOLDS          # [0.25, 0.5, 0.75] → POLICE, MILITARY, HEAVY
+THREAT_CORRUPTION_MIN            # 0.2 - corruption % where threat starts
+THREAT_CORRUPTION_MAX            # 0.8 - corruption % where threat maxes out
+THREAT_MILITARY_SIGHTING_FLOOR   # 0.5 - floor when military spots Dark Lord
+THREAT_ALARM_TOWER_FLOOR         # 0.5 - floor when alarm triggered
+THREAT_SOURCE_CORRUPTION         # "corruption" - source ID
+THREAT_SOURCE_MILITARY_SIGHTING  # "military_sighting" - source ID
+THREAT_SOURCE_ALARM_TOWER        # "alarm_tower" - source ID
+THREAT_REPORTING_ENEMY_TYPES     # [MILITARY, HEAVY, SPECIAL_FORCES] - types that report sightings
 
 #region Map Generation
 MAP_WIDTH, MAP_HEIGHT   # Default map dimensions

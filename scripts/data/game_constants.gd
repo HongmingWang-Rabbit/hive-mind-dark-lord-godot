@@ -14,6 +14,7 @@ const ESSENCE_PER_POSSESS := 25
 # Entity rewards
 const ESSENCE_PER_CIVILIAN := 10
 const ESSENCE_PER_ANIMAL := 5
+const ESSENCE_PER_POLICEMAN := 15
 
 #endregion
 
@@ -21,6 +22,7 @@ const ESSENCE_PER_ANIMAL := 5
 
 const CIVILIAN_COUNT := 10
 const ANIMAL_COUNT := 8
+const POLICEMAN_COUNT := 5
 const ENTITY_SPAWN_ATTEMPTS := 50  # Max attempts to find valid spawn position
 
 #endregion
@@ -30,6 +32,7 @@ const ENTITY_SPAWN_ATTEMPTS := 50  # Max attempts to find valid spawn position
 const GROUP_DARK_LORD := "dark_lord"
 const GROUP_CIVILIANS := "civilians"
 const GROUP_ANIMALS := "animals"
+const GROUP_POLICEMEN := "policemen"
 const GROUP_KILLABLE := "killable"
 const GROUP_MINIONS := "minions"
 const GROUP_THREATS := "threats"  # Dark Lord + minions - entities that civilians flee from
@@ -49,14 +52,16 @@ const DARK_LORD_ATTACK_COOLDOWN := 0.5  # Seconds between attacks
 
 const CIVILIAN_HP := 10
 const ANIMAL_HP := 10
+const POLICEMAN_HP := 25
+const POLICEMAN_DAMAGE := 5
 
 #endregion
 
 #region Combat - Enemies
 
-const POLICE_HP := 20
-const POLICE_DAMAGE := 5
-const POLICE_SPEED := 40.0
+const SWAT_HP := 20
+const SWAT_DAMAGE := 5
+const SWAT_SPEED := 40.0
 
 const MILITARY_HP := 40
 const MILITARY_DAMAGE := 10
@@ -74,11 +79,11 @@ const SPECIAL_FORCES_SPEED := 45.0
 
 #region Enemy Spawning
 
-const POLICE_SPAWN_INTERVAL := 10.0  # Seconds between spawns
+const SWAT_SPAWN_INTERVAL := 10.0  # Seconds between spawns
 const MILITARY_SPAWN_INTERVAL := 8.0
 const HEAVY_SPAWN_INTERVAL := 15.0
 
-const MAX_POLICE := 5
+const MAX_SWAT := 5
 const MAX_MILITARY := 3
 const MAX_HEAVY := 2
 const MAX_SPECIAL_FORCES := 2
@@ -92,7 +97,7 @@ const RANDOM_ENEMY_MAX := 6  # Max random enemies at once
 
 # Random enemy type weights (cumulative thresholds out of 100)
 const RANDOM_ENEMY_MILITARY_THRESHOLD := 50  # 0-49 = Military (50%)
-const RANDOM_ENEMY_POLICE_THRESHOLD := 80    # 50-79 = Police (30%)
+const RANDOM_ENEMY_SWAT_THRESHOLD := 80    # 50-79 = SWAT (30%)
 # 80-99 = Heavy (20%)
 
 #endregion
@@ -100,7 +105,7 @@ const RANDOM_ENEMY_POLICE_THRESHOLD := 80    # 50-79 = Police (30%)
 #region Entity Groups - Enemies
 
 const GROUP_ENEMIES := "enemies"
-const GROUP_POLICE := "police"
+const GROUP_SWAT := "swat"
 const GROUP_MILITARY := "military"
 const GROUP_HEAVY := "heavy"
 const GROUP_SPECIAL_FORCES := "special_forces"
@@ -120,7 +125,6 @@ const GROUP_ALARM_TOWERS := "alarm_towers"  # Human defense structures
 #region Alarm Towers (Human Defense)
 
 const ALARM_TOWER_COUNT := 3  # Number of alarm towers to spawn on map
-const ALARM_THREAT_INCREASE := 1  # Threat levels to increase when alarm triggered
 const ALARM_ENEMY_ATTRACT_RADIUS := 128.0  # Pixels - enemies within this range move toward alarm
 
 #endregion
@@ -180,7 +184,34 @@ const PORTAL_INITIAL_CORRUPTION_RANGE := 1  # Tiles of corruption created in Hum
 #region Win/Lose Conditions
 
 const WIN_THRESHOLD := 0.8
-const THREAT_THRESHOLDS: Array[float] = [0.2, 0.4, 0.6]
+
+#endregion
+
+#region Threat System
+
+# Float-based threat thresholds for enum conversion
+# 0.0-0.25 = NONE, 0.25-0.5 = SWAT, 0.5-0.75 = MILITARY, 0.75-1.0 = HEAVY
+const THREAT_LEVEL_THRESHOLDS: Array[float] = [0.25, 0.5, 0.75]
+
+# Corruption to threat scaling (linear from min to max)
+const THREAT_CORRUPTION_MIN := 0.2   # Below 20% corruption = 0.0 threat
+const THREAT_CORRUPTION_MAX := 0.8   # Above 80% corruption = 1.0 threat
+
+# Threat floors (one-time events that set minimum threat)
+const THREAT_MILITARY_SIGHTING_FLOOR := 0.5  # Military spots Dark Lord
+const THREAT_ALARM_TOWER_FLOOR := 0.5        # Alarm tower triggered
+
+# Source IDs (for consistency)
+const THREAT_SOURCE_CORRUPTION := "corruption"
+const THREAT_SOURCE_MILITARY_SIGHTING := "military_sighting"
+const THREAT_SOURCE_ALARM_TOWER := "alarm_tower"
+
+# Enemy types that report Dark Lord sightings (triggers military sighting threat)
+const THREAT_REPORTING_ENEMY_TYPES: Array[Enums.EnemyType] = [
+	Enums.EnemyType.MILITARY,
+	Enums.EnemyType.HEAVY,
+	Enums.EnemyType.SPECIAL_FORCES,
+]
 
 #endregion
 

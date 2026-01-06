@@ -21,9 +21,13 @@ signal retreat_ordered()
 signal dark_lord_move_ordered(target_pos: Vector2)
 
 # Game state events
-signal threat_level_changed(new_level: Enums.ThreatLevel)
+signal threat_value_changed(new_value: float, old_value: float)  # Float value 0.0-1.0
+signal threat_level_changed(new_level: Enums.ThreatLevel)        # Enum tier for spawning
 signal game_won()
 signal game_lost()
+
+# Detection events (for threat system)
+signal dark_lord_spotted_by_military(enemy_position: Vector2)
 
 # World dimension events
 signal world_switched(new_world: Enums.WorldType)

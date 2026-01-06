@@ -34,9 +34,13 @@ signal retreat_ordered()
 signal dark_lord_move_ordered(target_pos: Vector2)  # Player clicked to move Dark Lord
 
 # Game State
-signal threat_level_changed(new_level: Enums.ThreatLevel)
+signal threat_value_changed(new_value: float, old_value: float)  # Float 0.0-1.0
+signal threat_level_changed(new_level: Enums.ThreatLevel)        # Enum tier changed
 signal game_won()
 signal game_lost(reason: String)  # "dark_lord_died" or "corruption_wiped"
+
+# Threat Detection
+signal dark_lord_spotted_by_military(enemy_position: Vector2)  # Military enemy saw Dark Lord
 
 # World Dimension
 signal world_switched(new_world: Enums.WorldType)

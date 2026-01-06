@@ -3,7 +3,6 @@ extends Node
 
 var game_state: Enums.GameState = Enums.GameState.MENU
 var corruption_percent: float = 0.0
-var threat_level: Enums.ThreatLevel = Enums.ThreatLevel.NONE
 
 
 func _ready() -> void:
@@ -24,11 +23,11 @@ func start_game() -> void:
 func reset_game() -> void:
 	game_state = Enums.GameState.MENU
 	corruption_percent = 0.0
-	threat_level = Enums.ThreatLevel.NONE
 	Essence.reset()
 	HivePool.reset()
 	WorldManager.reset()
 	SpatialGrid.reset()
+	ThreatSystem.reset()
 
 
 func pause_game() -> void:
@@ -52,23 +51,28 @@ func check_win_lose() -> void:
 func update_corruption(new_percent: float) -> void:
 	corruption_percent = new_percent
 	EventBus.corruption_changed.emit(corruption_percent)
-	_update_threat_level()
+	_update_threat_from_corruption()
 	check_win_lose()
 
 
-func _update_threat_level() -> void:
-	var new_level := Enums.ThreatLevel.NONE
-	var thresholds := GameConstants.THREAT_THRESHOLDS
+func _update_threat_from_corruption() -> void:
+	## Update corruption-based threat source (linear scaling from min to max)
+	var min_corr := GameConstants.THREAT_CORRUPTION_MIN
+	var max_corr := GameConstants.THREAT_CORRUPTION_MAX
 
-	# Check thresholds from highest to lowest
-	for i in range(thresholds.size() - 1, -1, -1):
-		if corruption_percent >= thresholds[i]:
-			new_level = (i + 1) as Enums.ThreatLevel
-			break
+	# Linear scale: 0.0 at min_corr, 1.0 at max_corr
+	var threat_value := 0.0
+	if corruption_percent >= min_corr:
+		threat_value = clampf(
+			(corruption_percent - min_corr) / (max_corr - min_corr),
+			0.0,
+			1.0
+		)
 
-	if new_level != threat_level:
-		threat_level = new_level
-		EventBus.threat_level_changed.emit(threat_level)
+	ThreatSystem.set_source(
+		GameConstants.THREAT_SOURCE_CORRUPTION,
+		threat_value
+	)
 
 
 func _on_tile_corrupted(_tile_pos: Vector2i) -> void:
@@ -76,20 +80,12 @@ func _on_tile_corrupted(_tile_pos: Vector2i) -> void:
 
 
 func _on_alarm_triggered(alarm_position: Vector2) -> void:
-	## Alarm tower was triggered - increase threat and attract enemies
-	_increase_threat_level(GameConstants.ALARM_THREAT_INCREASE)
+	## Alarm tower was triggered - set threat floor and attract enemies
+	ThreatSystem.set_source(
+		GameConstants.THREAT_SOURCE_ALARM_TOWER,
+		GameConstants.THREAT_ALARM_TOWER_FLOOR
+	)
 	_attract_enemies_to_position(alarm_position)
-
-
-func _increase_threat_level(levels: int) -> void:
-	## Increase threat level by specified amount
-	var max_threat := Enums.ThreatLevel.HEAVY
-	var new_level_int := mini(threat_level + levels, max_threat)
-	var new_level := new_level_int as Enums.ThreatLevel
-
-	if new_level != threat_level:
-		threat_level = new_level
-		EventBus.threat_level_changed.emit(threat_level)
 
 
 func _attract_enemies_to_position(target_pos: Vector2) -> void:
@@ -100,7 +96,7 @@ func _attract_enemies_to_position(target_pos: Vector2) -> void:
 		if not is_instance_valid(enemy):
 			continue
 
-		var distance := enemy.global_position.distance_to(target_pos)
+		var distance: float = enemy.global_position.distance_to(target_pos)
 		if distance <= GameConstants.ALARM_ENEMY_ATTRACT_RADIUS:
 			# Tell enemy to investigate the alarm
 			if enemy.has_method("investigate_position"):

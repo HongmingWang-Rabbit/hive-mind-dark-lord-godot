@@ -77,6 +77,62 @@ To replace with a different camera:
 
 ---
 
+## ThreatSystem.gd
+
+Autoload that manages threat level from multiple modular sources.
+
+### Design
+- **Float-based**: Threat is 0.0-1.0 instead of discrete enum levels
+- **Multi-source**: Multiple sources can contribute (corruption, sightings, alarms)
+- **Max wins**: Final threat = max(all sources)
+- **Only increases**: Threat never decreases during gameplay
+- **Scalable**: New sources can be added without modifying ThreatSystem
+
+### Public API
+```gdscript
+set_source(source_id: String, value: float)  # Add/update a threat source
+remove_source(source_id: String)             # Remove source (mainly for reset)
+get_threat_value() -> float                  # Get current threat (0.0-1.0)
+get_threat_level() -> Enums.ThreatLevel      # Get enum tier for spawning
+get_source_value(source_id: String) -> float # Get specific source value
+reset()                                      # Clear all sources
+```
+
+### Built-in Sources
+| Source | Trigger | Value |
+|--------|---------|-------|
+| `corruption` | Corruption 20-80% | 0.0-1.0 (linear) |
+| `military_sighting` | Military sees Dark Lord | 0.5 floor |
+| `alarm_tower` | Civilian triggers alarm | 0.5 floor |
+
+### Enum Thresholds
+```gdscript
+# GameConstants.THREAT_LEVEL_THRESHOLDS = [0.25, 0.5, 0.75]
+0.0-0.25  → NONE
+0.25-0.5  → POLICE
+0.5-0.75  → MILITARY
+0.75-1.0  → HEAVY
+```
+
+### Adding New Threat Sources
+```gdscript
+# From anywhere in the codebase:
+ThreatSystem.set_source("boss_spotted", 0.75)
+
+# Or with constants (recommended):
+ThreatSystem.set_source(
+    GameConstants.THREAT_SOURCE_BOSS_SPOTTED,
+    GameConstants.THREAT_BOSS_SPOTTED_FLOOR
+)
+```
+
+### Signals
+Emits via EventBus when threat changes:
+- `threat_value_changed(new_value: float, old_value: float)` - Float value changed
+- `threat_level_changed(new_level: Enums.ThreatLevel)` - Enum tier changed
+
+---
+
 ## System Reset Flow
 
 ```gdscript
@@ -85,4 +141,5 @@ GameManager.reset_game()  # Resets all systems
     → HivePool.reset()    # Clear all minion pools
     → WorldManager.reset() # Reset to CORRUPTED world, clear portals
     → SpatialGrid.reset() # Clear spatial grid
+    → ThreatSystem.reset() # Clear all threat sources
 ```

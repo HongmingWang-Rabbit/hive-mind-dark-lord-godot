@@ -245,7 +245,7 @@ func _update_building_buttons() -> void:
 
 func _connect_signals() -> void:
 	EventBus.corruption_changed.connect(_on_corruption_changed)
-	EventBus.threat_level_changed.connect(_on_threat_level_changed)
+	EventBus.threat_value_changed.connect(_on_threat_value_changed)
 	EventBus.world_switched.connect(_on_world_switched)
 	EventBus.interaction_mode_changed.connect(_on_interaction_mode_changed)
 	EventBus.interaction_cancelled.connect(_on_interaction_cancelled)
@@ -287,8 +287,10 @@ func _on_corruption_changed(new_percent: float) -> void:
 	corruption_label.text = CORRUPTION_FORMAT % int(new_percent * 100)
 
 
-func _on_threat_level_changed(new_level: Enums.ThreatLevel) -> void:
-	threat_label.text = THREAT_FORMAT % THREAT_LEVEL_NAMES[new_level]
+func _on_threat_value_changed(new_value: float, _old_value: float) -> void:
+	var percent := int(new_value * 100)
+	var level := ThreatSystem.get_threat_level()
+	threat_label.text = THREAT_FORMAT % ("%d%% (%s)" % [percent, THREAT_LEVEL_NAMES[level]])
 
 
 func _on_world_switched(new_world: Enums.WorldType) -> void:

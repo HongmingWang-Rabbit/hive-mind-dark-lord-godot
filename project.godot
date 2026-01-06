@@ -26,6 +26,7 @@ GameManager="*res://scripts/systems/GameManager.gd"
 TileData="*res://scripts/data/tile_data.gd"
 WorldManager="*res://scripts/systems/WorldManager.gd"
 SpatialGrid="*res://scripts/systems/SpatialGrid.gd"
+ThreatSystem="*res://scripts/systems/ThreatSystem.gd"
 
 [display]
 
